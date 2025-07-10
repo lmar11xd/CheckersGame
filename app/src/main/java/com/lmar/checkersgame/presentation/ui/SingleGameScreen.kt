@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.AlertDialog
@@ -38,12 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
+import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.logic.generateInitialBoard
 import com.lmar.checkersgame.domain.model.Game
@@ -58,6 +61,7 @@ import com.lmar.checkersgame.presentation.ui.components.formatTime
 fun SingleGameScreen(
     gameState: Game?,
     gameTime: Int,
+    gameLevel: Difficulty,
     selectedCell: Pair<Int, Int>?,
     userId: String,
     onCellClick: (Int, Int) -> Unit,
@@ -124,7 +128,19 @@ fun SingleGameScreen(
                         Text(formatTime(gameTime), color = Color.DarkGray, fontSize = 12.sp)
                     }
 
-                    Text("Level", color = Color.DarkGray, fontSize = 12.sp)
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .background(Color.LightGray, shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        ) {
+                            Text("Nivel", color = Color.DarkGray, fontSize = 12.sp, modifier = Modifier.padding(end = 4.dp))
+                            Text(gameLevel.value, color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.width(120.dp),
@@ -299,6 +315,6 @@ private fun SingleGameScreenPreview() {
             println("Suma: ${a + b}")
         }
 
-        SingleGameScreen(gameState, 175, Pair(0,7), "01", myCallback, {}, {}, {}, {})
+        SingleGameScreen(gameState, 175, Difficulty.EASY, Pair(0,7), "01", myCallback, {}, {}, {}, {})
     }
 }

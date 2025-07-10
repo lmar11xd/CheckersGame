@@ -11,6 +11,7 @@ interface IGameRepository {
     suspend fun updateTurn(gameId: String, turn: String)
     suspend fun createOrJoinGame(player: Player, roomId: String): String
     suspend fun createGame(player1: Player, player2: Player, roomId: String): String
+    suspend fun createSingleGame(game: Game): String
     suspend fun setGameStatus(gameId: String, status: GameStatusEnum)
     suspend fun setWinner(gameId: String, winnerId: String)
     suspend fun requestRematch(gameId: String, userId: String)

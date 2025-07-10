@@ -1,8 +1,10 @@
 package com.lmar.checkersgame.presentation.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lmar.checkersgame.domain.ai.AIPlayer
+import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.logic.Position
 import com.lmar.checkersgame.domain.logic.canContinueJumping
@@ -28,7 +30,7 @@ import javax.inject.Inject
 class SingleGameViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
     private val soundPlayer: ISoundPlayer,
-    private val aiPlayer: AIPlayer
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _gameState = MutableStateFlow<Game?>(null)
@@ -43,7 +45,10 @@ class SingleGameViewModel @Inject constructor(
     private val _winner = MutableStateFlow<String?>(null)
     val winner: StateFlow<String?> = _winner
 
+    private lateinit var aiPlayer: AIPlayer
+
     var userId = ""
+    var gameLevel = Difficulty.EASY
 
     private var timerJob: Job? = null
 
@@ -62,21 +67,29 @@ class SingleGameViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
-            userId = authRepository.getCurrentUser()?.uid.toString()
-            val player1 = Player(id = userId, name = "Tú")
-            val player2 = Player(id = "AI", name = "IA")
+        savedStateHandle.get<String>("level")?.let { level ->
+            gameLevel = Difficulty.valueOf(level)
 
-            val initialBoard = generateInitialBoard(player1.id, player2.id)
-            _gameState.value = Game(
-                board = initialBoard,
-                player1 = player1,
-                player2 = player2,
-                turn = player1.id,
-                status = GameStatusEnum.PLAYING
-            )
+            aiPlayer = AIPlayer(gameLevel)
 
-            startGameTimer()
+            viewModelScope.launch {
+                userId = authRepository.getCurrentUser()?.uid.toString()
+
+                val player1 = Player(id = userId, name = "Tú")
+                val player2 = Player(id = "AI", name = "IA")
+
+                val initialBoard = generateInitialBoard(player1.id, player2.id)
+                _gameState.value = Game(
+                    board = initialBoard,
+                    player1 = player1,
+                    player2 = player2,
+                    turn = player1.id,
+                    status = GameStatusEnum.PLAYING,
+                    level = gameLevel
+                )
+
+                startGameTimer()
+            }
         }
 
     }

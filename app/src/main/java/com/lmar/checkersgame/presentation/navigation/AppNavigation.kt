@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.presentation.common.ui.auth.LoginScreen
 import com.lmar.checkersgame.presentation.common.ui.auth.ProfileScreen
 import com.lmar.checkersgame.presentation.common.ui.auth.SignUpScreen
@@ -40,16 +41,26 @@ fun AppNavigation() {
             HomeScreen(navController)
         }
 
-        composable(AppRoutes.SingleGameScreen.route) {
+        composable(
+            AppRoutes.SingleGameScreen.route + "?level={level}",
+            arguments = listOf(
+                navArgument("level") {
+                    type = NavType.StringType
+                    defaultValue = Difficulty.EASY.name
+                }
+            )
+        ) {
             val viewModel: SingleGameViewModel = hiltViewModel()
             val gameState by viewModel.gameState.collectAsState()
             val gameTime by viewModel.gameTime.collectAsState()
             val selectedCell by viewModel.selectedCell.collectAsState()
             val userId = viewModel.userId
+            val gameLevel = viewModel.gameLevel
 
             SingleGameScreen (
                 gameState = gameState,
                 gameTime = gameTime,
+                gameLevel = gameLevel,
                 selectedCell = selectedCell,
                 userId = userId,
                 onCellClick = { row, col -> viewModel.onCellClick(row, col) },

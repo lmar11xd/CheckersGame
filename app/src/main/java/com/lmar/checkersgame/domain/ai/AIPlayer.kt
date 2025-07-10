@@ -73,7 +73,7 @@ class AIPlayer(private val difficulty: Difficulty) {
     }
 }
 
-enum class Difficulty {
-    EASY, MEDIUM, HARD
+enum class Difficulty(val value: String) {
+    EASY("Fácil"), MEDIUM("Normal"), HARD("Difícil")
 }
 

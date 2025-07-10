@@ -113,6 +113,12 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
         return newGameId
     }
 
+    override suspend fun createSingleGame(game: Game): String {
+        val newGameId = UUID.randomUUID().toString()
+        database.child(newGameId).setValue(game).await()
+        return newGameId
+    }
+
     override suspend fun setGameStatus(gameId: String, status: GameStatusEnum) {
         database.child(gameId).child("status").setValue(status)
     }
