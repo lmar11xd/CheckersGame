@@ -16,7 +16,9 @@ import com.lmar.checkersgame.presentation.common.ui.auth.SignUpScreen
 import com.lmar.checkersgame.presentation.ui.GameScreen
 import com.lmar.checkersgame.presentation.ui.HomeScreen
 import com.lmar.checkersgame.presentation.ui.RoomScreen
+import com.lmar.checkersgame.presentation.ui.SingleGameScreen
 import com.lmar.checkersgame.presentation.viewmodel.GameViewModel
+import com.lmar.checkersgame.presentation.viewmodel.SingleGameViewModel
 
 @Composable
 fun AppNavigation() {
@@ -36,6 +38,32 @@ fun AppNavigation() {
 
         composable(AppRoutes.HomeScreen.route) {
             HomeScreen(navController)
+        }
+
+        composable(AppRoutes.SingleGameScreen.route) {
+            val viewModel: SingleGameViewModel = hiltViewModel()
+            val gameState by viewModel.gameState.collectAsState()
+            val gameTime by viewModel.gameTime.collectAsState()
+            val selectedCell by viewModel.selectedCell.collectAsState()
+            val userId = viewModel.userId
+
+            SingleGameScreen (
+                gameState = gameState,
+                gameTime = gameTime,
+                selectedCell = selectedCell,
+                userId = userId,
+                onCellClick = { row, col -> viewModel.onCellClick(row, col) },
+                onRematch = { viewModel.resetGame() },
+                onAbortGame = {
+                    navController.popBackStack()
+                },
+                onLeaveRoom = {
+                    navController.popBackStack()
+                },
+                onExit = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(

@@ -1,5 +1,6 @@
 package com.lmar.checkersgame.presentation.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,10 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AccessTimeFilled
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +55,7 @@ import com.lmar.checkersgame.domain.model.Room
 import com.lmar.checkersgame.domain.model.isNotEmpty
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.ui.components.Piece3D
+import com.lmar.checkersgame.presentation.ui.components.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +76,10 @@ fun GameScreen(
     var showExitDialog by remember { mutableStateOf(false) }
 
     val isUserTurn = gameState?.turn == userId
+
+    BackHandler {
+        showExitDialog = true
+    }
 
     LaunchedEffect(Unit) {
         println("Board size: ${gameState?.board?.size} rows")
@@ -108,12 +113,11 @@ fun GameScreen(
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-
                 val oponentName =
                     (if (gameState?.player1?.id == userId) gameState.player2?.name
                     else gameState?.player1?.name) ?: ""
 
+                // Info
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,24 +125,35 @@ fun GameScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
+                        modifier = Modifier.width(120.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            modifier = Modifier.size(24.dp).padding(end = 4.dp),
+                            modifier = Modifier.size(18.dp).padding(end = 4.dp),
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = "Tiempo",
                             tint = Color.DarkGray
                         )
-                        Text(formatTime(gameTime), color = Color.DarkGray)
+                        Text(formatTime(gameTime), color = Color.DarkGray, fontSize = 12.sp)
                     }
 
-                    Text("Level")
+                    Text("Level", color = Color.DarkGray, fontSize = 12.sp)
 
-                    Text(
-                        text = if (isUserTurn) "Tu turno" else "Turno de $oponentName"
-                    )
+                    Row(
+                        modifier = Modifier.width(120.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = if (isUserTurn) "Tu turno" else "Turno de $oponentName",
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.End,
+                            color = Color.DarkGray
+                        )
+                    }
                 }
 
+                // Tablero
                 Box(
                     modifier = Modifier
                         .aspectRatio(1f)
@@ -160,6 +175,12 @@ fun GameScreen(
                                         borderColor = Color.Green
                                         borderWith = 2.dp
                                     }
+
+                                    var paddingTop = if(row == 0) 4.dp else 0.dp
+                                    var paddingBottom = if(row == 7) 4.dp else 0.dp
+                                    var paddingStart = if(col == 0) 4.dp else 0.dp
+                                    var paddingEnd = if(col == 7) 4.dp else 0.dp
+
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
@@ -170,6 +191,7 @@ fun GameScreen(
                                                     else -> Color(0xFFFFF8E1)
                                                 }
                                             )
+                                            .padding(start = paddingStart, top = paddingTop, bottom = paddingBottom, end = paddingEnd)
                                             .border(borderWith, borderColor)
                                             .clickable {
                                                 if (gameState?.status == GameStatusEnum.PLAYING) {
@@ -179,7 +201,6 @@ fun GameScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (piece?.isNotEmpty() == true) {
-                                            //NeonPiece(piece = piece, currentUserId = userId)
                                             Piece3D(
                                                 modifier = Modifier.size(36.dp),
                                                 baseColor = if (piece.playerId == userId) Color.Red else Color.Black,
@@ -196,7 +217,7 @@ fun GameScreen(
                 Text(
                     text = roomState?.roomCode ?: "",
                     fontSize = 12.sp,
-                    color = Color.White.copy(0.5f),
+                    color = Color.DarkGray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.End)
                 )
@@ -319,13 +340,6 @@ fun GameScreen(
     }
 }
 
-@Composable
-fun formatTime(seconds: Int): String {
-    val minutes = seconds / 60
-    val secs = seconds % 60
-    return "%02d:%02d".format(minutes, secs)
-}
-
 @Preview(showBackground = true)
 @Composable
 private fun GameScreenPreview() {
@@ -344,6 +358,6 @@ private fun GameScreenPreview() {
             println("Suma: ${a + b}")
         }
 
-        GameScreen(gameState, roomState, 175, null, "01", myCallback, {}, false, {}, {}, {})
+        GameScreen(gameState, roomState, 175, Pair(0,7), "01", myCallback, {}, false, {}, {}, {})
     }
 }

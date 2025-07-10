@@ -1,15 +1,10 @@
 package com.lmar.checkersgame.presentation.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lmar.checkersgame.domain.repository.common.IAuthRepository
-import com.lmar.checkersgame.domain.repository.common.IUserRepository
-import com.lmar.checkersgame.domain.repository.IGameRepository
-import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
 import com.lmar.checkersgame.domain.logic.Position
@@ -23,6 +18,10 @@ import com.lmar.checkersgame.domain.model.Player
 import com.lmar.checkersgame.domain.model.Room
 import com.lmar.checkersgame.domain.model.getFirstName
 import com.lmar.checkersgame.domain.model.isNotEmpty
+import com.lmar.checkersgame.domain.repository.IGameRepository
+import com.lmar.checkersgame.domain.repository.IRoomRepository
+import com.lmar.checkersgame.domain.repository.common.IAuthRepository
+import com.lmar.checkersgame.domain.repository.common.IUserRepository
 import com.lmar.checkersgame.domain.sound.ISoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -136,9 +135,6 @@ class GameViewModel @Inject constructor(
         val newBoard =
             currentGame.board.map { it.map { p -> p.copy() }.toMutableList() }.toMutableList()
 
-        Log.d("Checkers", "from=$from to=$to user=$userId isKing=${piece.isKing}")
-        Log.d("Checkers", "shouldBeKing=${shouldBeKing(piece, to.first, player1Id, player2Id)}")
-
         val isCrowning = shouldBeKing(piece, to.first, player1Id, player2Id)
         val rowDiff = to.first - from.first
         val colDiff = to.second - from.second
@@ -248,7 +244,6 @@ class GameViewModel @Inject constructor(
     }
 
     fun requestRematch() {
-        println("Revancha: $userId")
         _rematchRequested.value = true
 
         viewModelScope.launch {

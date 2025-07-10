@@ -126,7 +126,7 @@ fun HomeScreen(
 
             Button(
                 onClick = {
-                    navController.navigate(AppRoutes.GameScreen.route)
+                    navController.navigate(AppRoutes.SingleGameScreen.route)
                 },
                 colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
                 modifier = Modifier.width(200.dp)

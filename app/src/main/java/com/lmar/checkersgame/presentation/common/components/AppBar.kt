@@ -12,6 +12,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,7 +23,7 @@ fun AppBar(
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        title = { Text(title, color = MaterialTheme.colorScheme.primary) },
+        title = { Text(title, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp) },
         navigationIcon = {
             IconButton(
                 onClick = { onBackAction() },
