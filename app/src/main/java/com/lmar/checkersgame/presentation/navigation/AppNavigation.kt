@@ -50,16 +50,20 @@ fun AppNavigation() {
             val viewModel: GameViewModel = hiltViewModel()
             val gameState by viewModel.gameState.observeAsState()
             val roomState by viewModel.roomState.observeAsState()
+            val gameTime by viewModel.gameTime.collectAsState()
             val selectedCell by viewModel.selectedCell.collectAsState()
+            val rematchRequested by viewModel.rematchRequested.collectAsState()
             val userId = viewModel.userId
 
             GameScreen(
                 gameState = gameState,
                 roomState = roomState,
+                gameTime = gameTime,
                 selectedCell = selectedCell,
                 userId = userId,
                 onCellClick = { row, col -> viewModel.onCellClick(row, col) },
-                onPlayAgain = { viewModel.resetGame() },
+                onRematch = { viewModel.requestRematch() },
+                rematchRequested = rematchRequested,
                 onAbortGame = {
                     viewModel.abortGame()
                     navController.popBackStack()

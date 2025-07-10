@@ -1,7 +1,7 @@
 package com.lmar.checkersgame.domain.model
 
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
-import com.lmar.checkersgame.utils.generateUniqueCode
+import com.lmar.checkersgame.core.utils.generateUniqueCode
 
 data class Room(
     var roomId: String,

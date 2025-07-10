@@ -10,6 +10,7 @@ data class Game(
     var turn: String = "",
     var winner: String? = null,
     var status: GameStatusEnum = GameStatusEnum.WAITING,
+    val rematchRequests: Map<String, Boolean> = emptyMap(),
     var createdAt: Long? = null,
     var updatedAt: Long? = null
 )

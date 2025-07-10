@@ -6,15 +6,14 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lmar.checkersgame.data.common.IAuthRepository
-import com.lmar.checkersgame.data.common.IUserRepository
-import com.lmar.checkersgame.data.repository.IGameRepository
-import com.lmar.checkersgame.data.repository.IRoomRepository
+import com.lmar.checkersgame.domain.repository.common.IAuthRepository
+import com.lmar.checkersgame.domain.repository.common.IUserRepository
+import com.lmar.checkersgame.domain.repository.IGameRepository
+import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
 import com.lmar.checkersgame.domain.logic.Position
 import com.lmar.checkersgame.domain.logic.canContinueJumping
-import com.lmar.checkersgame.domain.logic.generateInitialBoard
 import com.lmar.checkersgame.domain.logic.hasPieces
 import com.lmar.checkersgame.domain.logic.isValidMove
 import com.lmar.checkersgame.domain.logic.shouldBeKing
@@ -24,7 +23,10 @@ import com.lmar.checkersgame.domain.model.Player
 import com.lmar.checkersgame.domain.model.Room
 import com.lmar.checkersgame.domain.model.getFirstName
 import com.lmar.checkersgame.domain.model.isNotEmpty
+import com.lmar.checkersgame.domain.sound.ISoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -36,6 +38,7 @@ class GameViewModel @Inject constructor(
     private val userRepository: IUserRepository,
     private val roomRepository: IRoomRepository,
     private val repository: IGameRepository,
+    private val soundPlayer: ISoundPlayer,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -45,15 +48,34 @@ class GameViewModel @Inject constructor(
     private val _roomState = MutableLiveData<Room>()
     val roomState: LiveData<Room> = _roomState
 
-    var userId: String = ""
-    var roomId: String = ""
-    var gameId: String = ""
+    private val _gameTime = MutableStateFlow(0) // en segundos
+    val gameTime: StateFlow<Int> = _gameTime
+
+    private val _rematchRequested = MutableStateFlow(false)
+    val rematchRequested: StateFlow<Boolean> = _rematchRequested
 
     private val _selectedCell = MutableStateFlow<Position?>(null)
     val selectedCell: StateFlow<Position?> = _selectedCell
 
-    private val _winner = MutableStateFlow<String?>(null)
-    val winner: StateFlow<String?> = _winner
+    var userId: String = ""
+    var roomId: String = ""
+    var gameId: String = ""
+
+    private var timerJob: Job? = null
+
+    fun startGameTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                _gameTime.value += 1
+            }
+        }
+    }
+
+    fun stopGameTimer() {
+        timerJob?.cancel()
+    }
 
     init {
         savedStateHandle.get<String>("roomId")?.let {
@@ -75,6 +97,11 @@ class GameViewModel @Inject constructor(
 
                     repository.listenToGame(gameId) { game ->
                         _gameState.value = game
+                        if (game.status == GameStatusEnum.PLAYING) {
+                            startGameTimer()
+                        } else if (game.status == GameStatusEnum.FINISHED || game.status == GameStatusEnum.ABORTED) {
+                            stopGameTimer()
+                        }
                     }
                 }
             }
@@ -112,22 +139,32 @@ class GameViewModel @Inject constructor(
         Log.d("Checkers", "from=$from to=$to user=$userId isKing=${piece.isKing}")
         Log.d("Checkers", "shouldBeKing=${shouldBeKing(piece, to.first, player1Id, player2Id)}")
 
-        // Mover pieza
-        newBoard[to.first][to.second] = piece.copy(
-            isKing = piece.isKing || shouldBeKing(piece, to.first, player1Id, player2Id)
-        )
-        newBoard[from.first][from.second] = Piece() // Limpiar celda
-
+        val isCrowning = shouldBeKing(piece, to.first, player1Id, player2Id)
         val rowDiff = to.first - from.first
         val colDiff = to.second - from.second
         val jumped = kotlin.math.abs(rowDiff) == 2 && kotlin.math.abs(colDiff) == 2
 
+        // Reproducir sonido según el tipo de acción
+        when {
+            isCrowning && !piece.isKing -> soundPlayer.playCrown()
+            jumped -> soundPlayer.playCapture()
+            else -> soundPlayer.playMove()
+        }
+
+        // Coronación
+        newBoard[to.first][to.second] = piece.copy(
+            isKing = piece.isKing || isCrowning
+        )
+        newBoard[from.first][from.second] = Piece() // Limpiar celda
+
+        // Capturar pieza
         if (jumped) {
             val midRow = (from.first + to.first) / 2
             val midCol = (from.second + to.second) / 2
             newBoard[midRow][midCol] = Piece()
         }
 
+        // Guardar el nuevo estado del juego
         _gameState.value = currentGame.copy(board = newBoard)
 
         if (jumped && canContinueJumping(newBoard, to, userId, player1Id, player2Id)) {
@@ -148,32 +185,44 @@ class GameViewModel @Inject constructor(
     }
 
     private fun endGame(winnerId: String) {
-        _winner.value = winnerId
+        val currentGame = _gameState.value ?: return
+
+        if (winnerId == userId) {
+            soundPlayer.playWin()
+        } else {
+            soundPlayer.playLose()
+        }
+
         viewModelScope.launch {
             repository.setWinner(gameId, winnerId)
             repository.setGameStatus(gameId, GameStatusEnum.FINISHED)
+
+            val player1Id = currentGame.player1?.id.toString()
+            val player2Id = currentGame.player2?.id.toString()
+
+            repository.listenToRematchRequests(gameId, player1Id, player2Id) {
+                resetGame()
+            }
         }
     }
 
     fun resetGame() {
         val currentGame = _gameState.value ?: return
 
-        val player1Id = currentGame.player1?.id.toString()
-        val player2Id = currentGame.player2?.id.toString()
-
-        val newBoard = generateInitialBoard(player1Id, player2Id)
-        _gameState.value = currentGame.copy(
-            board = newBoard,
-            turn = userId
-        )
-
         _selectedCell.value = null
-        _winner.value = null
+
+        val player1 = currentGame.player1
+        val player2 = currentGame.player2
+
+        if (player1 == null || player2 == null) return
 
         viewModelScope.launch {
-            repository.updateBoard(gameId, newBoard)
-            repository.updateTurn(gameId, userId)
-            repository.setGameStatus(gameId, GameStatusEnum.PLAYING)
+            val newGameId = repository.createGame(player1, player2, roomId)
+            gameId = newGameId
+            repository.clearRematchRequests(newGameId)
+            repository.listenToGame(newGameId) {
+                _gameState.value = it
+            }
         }
     }
 
@@ -195,6 +244,15 @@ class GameViewModel @Inject constructor(
     fun leaveRoom() {
         viewModelScope.launch {
             roomRepository.setRoomStatus(roomId, RoomStatusEnum.CLOSED)
+        }
+    }
+
+    fun requestRematch() {
+        println("Revancha: $userId")
+        _rematchRequested.value = true
+
+        viewModelScope.launch {
+            repository.requestRematch(gameId, userId)
         }
     }
 

@@ -15,9 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AccessTimeFilled
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -56,10 +61,12 @@ import com.lmar.checkersgame.presentation.ui.components.Piece3D
 fun GameScreen(
     gameState: Game?,
     roomState: Room?,
+    gameTime: Int,
     selectedCell: Pair<Int, Int>?,
     userId: String,
     onCellClick: (Int, Int) -> Unit,
-    onPlayAgain: () -> Unit,
+    onRematch: () -> Unit,
+    rematchRequested: Boolean,
     onAbortGame: () -> Unit,
     onExit: () -> Unit,
     onLeaveRoom: () -> Unit
@@ -107,15 +114,23 @@ fun GameScreen(
                     (if (gameState?.player1?.id == userId) gameState.player2?.name
                     else gameState?.player1?.name) ?: ""
 
-
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("10:32")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(24.dp).padding(end = 4.dp),
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "Tiempo",
+                            tint = Color.DarkGray
+                        )
+                        Text(formatTime(gameTime), color = Color.DarkGray)
+                    }
 
                     Text("Level")
 
@@ -197,7 +212,10 @@ fun GameScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("La partida se iniciará cuando otro jugador se una. Código de sala:")
+                                Text(
+                                    "La partida se iniciará cuando otro jugador se una. Código de sala:",
+                                    textAlign = TextAlign.Center
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(roomState?.roomCode.toString(), fontSize = 24.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -227,10 +245,17 @@ fun GameScreen(
                             )
                         },
                         text = {
-                            Text("¿Qué deseas hacer?")
+                            if (rematchRequested) {
+                                Text("Revancha solicitada, esperando a que el oponente acepte.")
+                            } else {
+                                Text("¿Qué deseas hacer?")
+                            }
                         },
                         confirmButton = {
-                            TextButton(onClick = onPlayAgain) {
+                            TextButton(
+                                onClick = onRematch,
+                                enabled = !rematchRequested
+                            ) {
                                 Text("Revancha")
                             }
                         },
@@ -246,10 +271,7 @@ fun GameScreen(
                     AlertDialog(
                         onDismissRequest = {},
                         title = {
-                            Text(
-                                text = "¡Felicidades, ganaste!",
-                                fontSize = 20.sp
-                            )
+                            Text(text = "¡Felicidades, ganaste!")
                         },
                         text = {
                             Text("Tu oponente abandonó la partida.")
@@ -297,6 +319,13 @@ fun GameScreen(
     }
 }
 
+@Composable
+fun formatTime(seconds: Int): String {
+    val minutes = seconds / 60
+    val secs = seconds % 60
+    return "%02d:%02d".format(minutes, secs)
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun GameScreenPreview() {
@@ -307,7 +336,7 @@ private fun GameScreenPreview() {
             Player("01", "Player 1"),
             Player("02", "Player 2"),
             board, "01", "01",
-            GameStatusEnum.ABORTED
+            GameStatusEnum.PLAYING
         )
         val roomState = Room("0001", "908060", RoomStatusEnum.COMPLETED)
 
@@ -315,6 +344,6 @@ private fun GameScreenPreview() {
             println("Suma: ${a + b}")
         }
 
-        GameScreen(gameState, roomState, null, "01", myCallback, {}, {}, {}, {})
+        GameScreen(gameState, roomState, 175, null, "01", myCallback, {}, false, {}, {}, {})
     }
 }

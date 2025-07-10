@@ -14,7 +14,7 @@
         android:theme="@style/Theme.CheckersGame"
         tools:targetApi="31">
         <activity
-            android:name=".app.MainActivity"
+            android:name=".core.app.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.CheckersGame">
             <intent-filter>

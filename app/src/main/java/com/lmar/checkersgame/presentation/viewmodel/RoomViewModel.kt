@@ -5,10 +5,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lmar.checkersgame.data.repository.IRoomRepository
+import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
 import com.lmar.checkersgame.domain.model.Room
-import com.lmar.checkersgame.utils.generateUniqueCode
+import com.lmar.checkersgame.core.utils.generateUniqueCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID

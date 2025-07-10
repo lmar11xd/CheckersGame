@@ -5,8 +5,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lmar.checkersgame.data.common.IAuthRepository
-import com.lmar.checkersgame.data.common.IUserRepository
+import com.lmar.checkersgame.domain.repository.common.IAuthRepository
+import com.lmar.checkersgame.domain.repository.common.IUserRepository
 import com.lmar.checkersgame.domain.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch

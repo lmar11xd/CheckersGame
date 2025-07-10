@@ -64,7 +64,7 @@ import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.ProfileViewModel
 import com.lmar.checkersgame.presentation.navigation.AppRoutes
-import com.lmar.checkersgame.utils.Constants.PHOTO_SIZE
+import com.lmar.checkersgame.core.utils.Constants.PHOTO_SIZE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
