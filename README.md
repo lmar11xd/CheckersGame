@@ -30,6 +30,9 @@ https://paulallies.medium.com/clean-architecture-in-the-flavour-of-jetpack-compo
 
 ```
 
+# Recomendaciones
+Utilizar StateFlow (Moderno en Jetpack Compose) en lugar de LiveData para manejar el estado de la UI.
+
 ### Generador de Sonidos
 https://sfxr.me/
 https://www.bfxr.net/

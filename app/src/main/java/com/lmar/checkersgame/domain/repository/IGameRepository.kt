@@ -14,6 +14,7 @@ interface IGameRepository {
     suspend fun createSingleGame(game: Game): String
     suspend fun setGameStatus(gameId: String, status: GameStatusEnum)
     suspend fun setWinner(gameId: String, winnerId: String)
+    suspend fun setFinalScores(gameId: String, scores: Map<String, Int>)
     suspend fun requestRematch(gameId: String, userId: String)
     suspend fun listenToRematchRequests(gameId: String, player1Id: String, player2Id: String, onBothAccepted: () -> Unit)
     suspend fun clearRematchRequests(gameId: String)

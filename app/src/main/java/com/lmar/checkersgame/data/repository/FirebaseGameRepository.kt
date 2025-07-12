@@ -41,8 +41,7 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
     }
 
     override suspend fun createOrJoinGame(player: Player, roomId: String): String {
-        val gamesRef = database
-        val query = gamesRef.orderByChild("roomId").equalTo(roomId)
+        val query = database.orderByChild("roomId").equalTo(roomId)
         val snapshot = query.get().await()
 
         for (gameSnapshot in snapshot.children) {
@@ -55,11 +54,11 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
                 val newBoard = generateInitialBoard(player1Id, player.id)
                 val randomTurn = arrayOf(player1Id, player.id).random()
 
-                gamesRef.child(gameId).child("player2").setValue(player).await()
-                gamesRef.child(gameId).child("status").setValue(GameStatusEnum.PLAYING).await()
-                gamesRef.child(gameId).child("board").setValue(newBoard).await()
-                gamesRef.child(gameId).child("turn").setValue(randomTurn).await()
-                gamesRef.child(gameId).child("updatedAt").setValue(System.currentTimeMillis())
+                database.child(gameId).child("player2").setValue(player).await()
+                database.child(gameId).child("status").setValue(GameStatusEnum.PLAYING).await()
+                database.child(gameId).child("board").setValue(newBoard).await()
+                database.child(gameId).child("turn").setValue(randomTurn).await()
+                database.child(gameId).child("updatedAt").setValue(System.currentTimeMillis())
                     .await()
 
                 return gameId
@@ -81,7 +80,7 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
             updatedAt = currentTimestamp
         )
 
-        gamesRef.child(newGameId).setValue(newGame).await()
+        database.child(newGameId).setValue(newGame).await()
 
         return newGameId
     }
@@ -125,6 +124,13 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
 
     override suspend fun setWinner(gameId: String, winnerId: String) {
         database.child(gameId).child("winner").setValue(winnerId)
+    }
+
+    override suspend fun setFinalScores(
+        gameId: String,
+        scores: Map<String, Int>
+    ) {
+        database.child(gameId).child("scores").setValue(scores)
     }
 
     override suspend fun requestRematch(gameId: String, userId: String) {

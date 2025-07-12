@@ -13,6 +13,8 @@ data class Game(
     var status: GameStatusEnum = GameStatusEnum.WAITING,
     val rematchRequests: Map<String, Boolean> = emptyMap(),
     val level: Difficulty = Difficulty.EASY,
+    val gameTime: Int = 0,
+    val scores: Map<String, Int> = emptyMap(),
     var createdAt: Long? = null,
     var updatedAt: Long? = null
 )

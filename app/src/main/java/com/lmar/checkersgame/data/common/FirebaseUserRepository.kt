@@ -14,13 +14,14 @@ import com.lmar.checkersgame.core.utils.Constants
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class FirebaseUserRepository @Inject constructor(): IUserRepository {
+class FirebaseUserRepository @Inject constructor() : IUserRepository {
 
     companion object {
         private const val TAG = "FirebaseUserRepository"
     }
 
-    private val database: DatabaseReference = FirebaseDatabase.getInstance().getReference(Constants.USERS_REFERENCE)
+    private val database: DatabaseReference =
+        FirebaseDatabase.getInstance().getReference(Constants.USERS_REFERENCE)
     private val storage = FirebaseStorage.getInstance()
 
     override suspend fun createUser(user: User, onResult: (Boolean) -> Unit) {
@@ -63,7 +64,7 @@ class FirebaseUserRepository @Inject constructor(): IUserRepository {
         }
     }
 
-    override fun listenForUpdates(userId: String, onUpdate: (User) -> Unit ) {
+    override fun listenForUpdates(userId: String, onUpdate: (User) -> Unit) {
         database.child(userId).addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 snapshot.getValue(User::class.java)?.let { onUpdate(it) }
@@ -103,5 +104,22 @@ class FirebaseUserRepository @Inject constructor(): IUserRepository {
                 Log.e(TAG, "Error al actualizar usuario", it)
                 onResult(false)
             }
+    }
+
+    override suspend fun updateUserScore(userId: String, newScore: Int) {
+        database.child(userId).child("score").setValue(newScore)
+    }
+
+    override suspend fun getTopPlayers(limit: Int): List<User> {
+        val query = database.orderByChild("score")
+            .limitToLast(limit) // ← porque ordena ascendente, usamos limitToLast
+        val snapshot = query.get().await()
+
+        if(snapshot == null) return emptyList()
+
+        val users = snapshot.children.mapNotNull { it.getValue(User::class.java) }
+            .sortedByDescending { it.score }
+
+        return users
     }
 }

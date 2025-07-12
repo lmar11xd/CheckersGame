@@ -5,6 +5,7 @@ data class User (
     var names: String = "",
     var email: String = "",
     var imageUrl: String = "",
+    val score: Int = 0,
     var createdAt: Long? = null,
     var updatedAt: Long? = null
 ) {

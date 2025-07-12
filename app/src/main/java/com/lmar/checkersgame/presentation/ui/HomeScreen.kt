@@ -163,6 +163,18 @@ fun HomeScreen(
                 }
 
                 Spacer(modifier = Modifier.size(4.dp))
+
+                Button(
+                    onClick = {
+                        navController.navigate(AppRoutes.RankingScreen.route)
+                    },
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
+                    modifier = Modifier.width(200.dp)
+                ) {
+                    Text("Ranking")
+                }
+
+                Spacer(modifier = Modifier.size(4.dp))
             }
         }
 

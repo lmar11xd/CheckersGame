@@ -16,6 +16,7 @@ import com.lmar.checkersgame.domain.logic.shouldBeKing
 import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.model.Piece
 import com.lmar.checkersgame.domain.model.Player
+import com.lmar.checkersgame.domain.repository.IGameRepository
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.sound.ISoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SingleGameViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
+    private val gameRepository: IGameRepository,
     private val soundPlayer: ISoundPlayer,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -205,12 +207,28 @@ class SingleGameViewModel @Inject constructor(
 
         if (!aiHasPieces || !aiCanMove) {
             _winner.value = player1Id
-            _gameState.value = _gameState.value?.copy(winner = player1Id, status = GameStatusEnum.FINISHED)
             stopGameTimer()
+            finishGame(player1Id)
         } else if (!userHasPieces || !userCanMove) {
             _winner.value = player2Id
-            _gameState.value = _gameState.value?.copy(winner = player2Id, status = GameStatusEnum.FINISHED)
             stopGameTimer()
+            finishGame(player2Id)
+        }
+    }
+
+    private fun finishGame(winnerId: String) {
+        viewModelScope.launch {
+            val currentGame = _gameState.value?.copy(
+                winner = winnerId,
+                status = GameStatusEnum.FINISHED,
+                gameTime = _gameTime.value,
+                updatedAt = System.currentTimeMillis()
+            )
+
+            if (currentGame != null) {
+                _gameState.value = currentGame
+                gameRepository.createSingleGame(currentGame)
+            }
         }
     }
 
