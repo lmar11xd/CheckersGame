@@ -10,15 +10,19 @@ import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
 import com.lmar.checkersgame.domain.model.Room
 import com.lmar.checkersgame.core.utils.Constants
+import com.lmar.checkersgame.core.utils.generateUniqueCode
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 import javax.inject.Inject
 
-class FirebaseRoomRepository @Inject constructor(): IRoomRepository {
+class FirebaseRoomRepository @Inject constructor() : IRoomRepository {
 
     companion object {
         private const val TAG = "FirebaseRoomRepository"
     }
 
-    private val database: DatabaseReference = FirebaseDatabase.getInstance().getReference("${Constants.DATABASE_REFERENCE}/${Constants.ROOMS_REFERENCE}")
+    private val database: DatabaseReference = FirebaseDatabase.getInstance()
+        .getReference("${Constants.DATABASE_REFERENCE}/${Constants.ROOMS_REFERENCE}")
 
     override fun listenForUpdates(
         roomId: String,
@@ -33,20 +37,19 @@ class FirebaseRoomRepository @Inject constructor(): IRoomRepository {
         })
     }
 
-    override suspend fun createRoom(
-        room: Room,
-        onResult: (Boolean) -> Unit
-    ) {
-        database.child(room.roomId)
-            .setValue(room)
-            .addOnSuccessListener {
-                Log.d(TAG, "Sala creada con éxito: ${room.roomId}")
-                onResult(true)
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error al crear sala", e)
-                onResult(false)
-            }
+    override suspend fun createRoom(): String {
+        val roomId = UUID.randomUUID().toString()
+        val currentTimestamp = System.currentTimeMillis()
+
+        val newRoom = Room()
+        newRoom.roomId = roomId
+        newRoom.roomCode = generateUniqueCode()
+        newRoom.createdAt = currentTimestamp
+        newRoom.updatedAt = currentTimestamp
+
+        database.child(roomId).setValue(newRoom).await()
+
+        return roomId
     }
 
     override suspend fun getRoomById(
@@ -67,33 +70,20 @@ class FirebaseRoomRepository @Inject constructor(): IRoomRepository {
             })
     }
 
-    override suspend fun getRoomByCode(
-        roomCode: String,
-        onResult: (Room?) -> Unit
-    ) {
-        database
+    override suspend fun getRoomByCode(roomCode: String): Room? {
+        val query = database
             .orderByChild("roomCode")
             .equalTo(roomCode)
             .limitToFirst(1)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    for (roomSnapshot in snapshot.children) {
-                        val room = roomSnapshot.getValue(Room::class.java)
-                        Log.d(TAG, "Sala con codigo: $roomCode encontrada")
-                        onResult(room)
-                        return
-                    }
 
-                    Log.d(TAG, "Sala con codigo: $roomCode no encontrada")
-                    onResult(null)
-                }
+        val snapshot = query.get().await()
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Error de consulta: $error")
-                    onResult(null)
-                }
-
-            })
+        if (snapshot != null) {
+            for (roomSnapshot in snapshot.children) {
+                return roomSnapshot.getValue(Room::class.java)
+            }
+        }
+        return null
     }
 
     override suspend fun updateRoom(

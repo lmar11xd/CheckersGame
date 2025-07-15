@@ -1,6 +1,7 @@
 package com.lmar.checkersgame.presentation.ui
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -29,52 +27,52 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.GlowingCard
-import com.lmar.checkersgame.presentation.navigation.AppRoutes
 import com.lmar.checkersgame.presentation.ui.components.RoomTextField
-import com.lmar.checkersgame.presentation.viewmodel.RoomViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(
-    navController: NavController,
-    viewModel: RoomViewModel = hiltViewModel(),
+    onCreateRoom: () -> Unit,
+    onJoinRoom: (code: String) -> Unit,
+    onBackAction: () -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
     var code by remember { mutableStateOf("") }
     var validationMessage by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            AppBar(
-                "Multijugador",
-                onBackAction = {
-                    navController.popBackStack()
-                },
-                state = rememberTopAppBarState()
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
     ) {
-        Box(
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
+        )
+
+        Column {
+            AppBar(
+                "Multijugador",
+                onBackAction = onBackAction,
+                state = rememberTopAppBarState()
+            )
+
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -125,17 +123,7 @@ fun RoomScreen(
                                     if (code.isEmpty()) {
                                         validationMessage = ""
                                     } else {
-                                        viewModel.searchRoomByCode(code) { valid, roomId ->
-                                            if (valid) {
-                                                validationMessage = ""
-                                                navController.navigate(
-                                                    AppRoutes.GameScreen.route + "?roomId=$roomId"
-                                                )
-                                            } else {
-                                                validationMessage =
-                                                    roomId //Si no es válido roomId es un mensaje de error
-                                            }
-                                        }
+                                        onJoinRoom(code)
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
@@ -179,13 +167,7 @@ fun RoomScreen(
                         Spacer(modifier = Modifier.size(10.dp))
 
                         Button(
-                            onClick = {
-                                viewModel.createRoom { roomId ->
-                                    navController.navigate(
-                                        AppRoutes.GameScreen.route + "?roomId=$roomId"
-                                    )
-                                }
-                            },
+                            onClick = onCreateRoom,
                             shape = RoundedCornerShape(10.dp),
                         ) {
                             Text("Jugar")
@@ -195,12 +177,13 @@ fun RoomScreen(
             }
         }
     }
+
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun RoomScreenPreview() {
     CheckersGameTheme {
-        RoomScreen(rememberNavController())
+        RoomScreen({}, {}, {})
     }
 }

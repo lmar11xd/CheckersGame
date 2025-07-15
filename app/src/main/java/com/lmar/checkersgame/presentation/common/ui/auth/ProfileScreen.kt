@@ -36,8 +36,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,10 +50,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.lmar.checkersgame.R
+import com.lmar.checkersgame.core.utils.Constants.PHOTO_SIZE
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.FormTextField
 import com.lmar.checkersgame.presentation.common.components.GlowingCard
@@ -60,56 +61,90 @@ import com.lmar.checkersgame.presentation.common.components.HeadingTextComponent
 import com.lmar.checkersgame.presentation.common.components.ImageCircle
 import com.lmar.checkersgame.presentation.common.components.Loading
 import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
-import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthState
-import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
+import com.lmar.checkersgame.presentation.common.components.SnackbarManager
+import com.lmar.checkersgame.presentation.common.event.ProfileEvent
+import com.lmar.checkersgame.presentation.common.event.UiEvent
+import com.lmar.checkersgame.presentation.common.state.ProfileState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.ProfileViewModel
 import com.lmar.checkersgame.presentation.navigation.AppRoutes
-import com.lmar.checkersgame.core.utils.Constants.PHOTO_SIZE
+import kotlinx.coroutines.flow.collectLatest
+
+@Composable
+fun ProfileScreenContainer(
+    navController: NavHostController,
+    profileViewModel: ProfileViewModel = hiltViewModel()
+) {
+    val profileState by profileViewModel.profileState.collectAsState()
+
+    LaunchedEffect(key1 = true) {
+        profileViewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    SnackbarManager.showMessage(
+                        event.snackbarEvent.message,
+                        event.snackbarEvent.type
+                    )
+                }
+
+                UiEvent.ToBack -> {
+                    navController.popBackStack()
+                }
+
+                UiEvent.ToHome -> {
+                    navController.navigate(AppRoutes.HomeScreen.route)
+                }
+
+                UiEvent.ToSignUp -> {
+                    navController.navigate(AppRoutes.SignUpScreen.route)
+                }
+
+                UiEvent.ToLogin -> {
+                    navController.navigate(AppRoutes.LoginScreen.route)
+                }
+            }
+        }
+    }
+
+    ProfileScreen(
+        profileState,
+        onEvent = { event ->
+            profileViewModel.onEvent(event)
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(
-    navController: NavController,
-    profileViewModel: ProfileViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+private fun ProfileScreen(
+    profileState: ProfileState = ProfileState(),
+    onEvent: (ProfileEvent) -> Unit = {}
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    val authState = authViewModel.authState.observeAsState()
-    val userState = profileViewModel.userState.observeAsState()
-
-    val showForm by profileViewModel.showForm.observeAsState()
-
-    val isLoading by profileViewModel.isLoading.observeAsState()
-
-    val profileImageUri by profileViewModel.profileImageUri.observeAsState()
-
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        profileViewModel.setProfileImage(uri)
+        onEvent(ProfileEvent.EnteredImageUri(uri!!))
     }
 
-    Scaffold(
-        topBar = {
-            AppBar(
-                "Perfil",
-                onBackAction = {
-                    navController.popBackStack()
-                },
-                state = rememberTopAppBarState()
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
-    ) { paddingValues ->
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(paddingValues)
-        ) {
+        )
+
+        Column {
+            AppBar(
+                "Perfil",
+                onBackAction = { onEvent(ProfileEvent.ToBack) },
+                state = rememberTopAppBarState()
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -121,7 +156,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (authState.value == AuthState.Authenticated) {
+                    if (profileState.isAuthenticated) {
                         //Información del Usuario
                         Box(modifier = Modifier.size(PHOTO_SIZE)) {
                             GlowingCard(
@@ -132,9 +167,9 @@ fun ProfileScreen(
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                                 cornerRadius = Int.MAX_VALUE.dp
                             ) {
-                                if(profileImageUri == null) {
-                                    userState.value?.imageUrl?.let { imageUrl ->
-                                        if(imageUrl.isEmpty()) {
+                                if (profileState.imageUri == null) {
+                                    profileState.user.imageUrl.let { imageUrl ->
+                                        if (imageUrl.isEmpty()) {
                                             ImageCircle(
                                                 painter = painterResource(R.drawable.default_avatar),
                                                 modifier = Modifier.size(PHOTO_SIZE)
@@ -148,13 +183,13 @@ fun ProfileScreen(
                                     }
                                 } else {
                                     ImageCircle(
-                                        painter = rememberAsyncImagePainter(profileImageUri),
+                                        painter = rememberAsyncImagePainter(profileState.imageUri),
                                         modifier = Modifier.size(PHOTO_SIZE)
                                     )
                                 }
                             }
 
-                            if (showForm == true) {
+                            if (profileState.isShowingForm) {
                                 IconButton(
                                     onClick = { launcher.launch("image/*") },
                                     modifier = Modifier
@@ -184,20 +219,19 @@ fun ProfileScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 HeadingTextComponent(
-                                    value = userState.value?.names ?: "",
+                                    value = profileState.user.names,
                                     textColor = MaterialTheme.colorScheme.primary,
                                     fontSize = 16.sp
                                 )
 
                                 NormalTextComponent(
-                                    value = userState.value?.email ?: "",
-                                    fontSize = 14.sp
+                                    value = profileState.user.email, fontSize = 14.sp
                                 )
                             }
 
-                            if (showForm == false) {
+                            if (!profileState.isShowingForm) {
                                 IconButton(
-                                    onClick = { profileViewModel.showForm() },
+                                    onClick = { onEvent(ProfileEvent.ShowForm(true)) },
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
@@ -212,7 +246,7 @@ fun ProfileScreen(
                                 }
                             } else {
                                 IconButton(
-                                    onClick = { profileViewModel.dismissForm() },
+                                    onClick = { onEvent(ProfileEvent.ShowForm(false)) },
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
@@ -230,18 +264,17 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        if (showForm == true) {
+                        if (profileState.isShowingForm) {
                             //Formulario
                             FormTextField(
-                                value = userState.value?.names ?: "",
+                                value = profileState.user.names,
                                 label = "Nombres",
                                 icon = Icons.Default.Person,
                                 onValueChange = {
-                                    profileViewModel.changeName(it)
-                                }
-                            )
+                                    onEvent(ProfileEvent.EnteredNames(it))
+                                })
                         }
-                    } else if (authState.value == AuthState.Unauthenticated) {
+                    } else {
                         //Default
                         GlowingCard(
                             modifier = Modifier
@@ -265,8 +298,7 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.size(8.dp))
 
                         NormalTextComponent(
-                            "¡Inicia sesión y juega en línea con tus amigos!",
-                            fontSize = 14.sp
+                            "¡Inicia sesión y juega en línea con tus amigos!", fontSize = 14.sp
                         )
                     }
                 }
@@ -280,12 +312,13 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
                 ) {
-                    if (showForm == true) {
+                    if (profileState.isShowingForm) {
                         Spacer(modifier = Modifier.size(4.dp))
 
                         Button(
                             onClick = {
-                                profileViewModel.saveForm()
+                                onEvent(ProfileEvent.SaveForm)
+                                onEvent(ProfileEvent.ShowForm(false))
                             },
                             colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
                             modifier = Modifier.width(200.dp)
@@ -296,18 +329,16 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.size(4.dp))
 
-                    if (authState.value == AuthState.Authenticated) {
+                    if (profileState.isAuthenticated) {
                         OutlinedButton(
-                            onClick = { authViewModel.signout() },
+                            onClick = { onEvent(ProfileEvent.SignOut) },
                             modifier = Modifier.width(200.dp)
                         ) {
                             Text("Cerrar Sesión")
                         }
-                    } else if (authState.value == AuthState.Unauthenticated) {
+                    } else {
                         Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.LoginScreen.route)
-                            },
+                            onClick = { onEvent(ProfileEvent.ToLogin) },
                             colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
                             modifier = Modifier.width(200.dp)
                         ) {
@@ -317,9 +348,7 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.size(4.dp))
 
                         Button(
-                            onClick = {
-                                navController.navigate(AppRoutes.SignUpScreen.route)
-                            },
+                            onClick = { onEvent(ProfileEvent.ToSignUp) },
                             colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
                             modifier = Modifier.width(200.dp)
                         ) {
@@ -331,15 +360,16 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.size(4.dp))
             }
         }
-
-        if (isLoading == true) {
-            Loading()
-        }
     }
+
+    if (profileState.isLoading) {
+        Loading()
+    }
+
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ProfileScreenPreview() {
-    ProfileScreen(rememberNavController())
+    ProfileScreen(ProfileState(), {})
 }

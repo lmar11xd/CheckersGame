@@ -1,6 +1,6 @@
 package com.lmar.checkersgame.presentation.common.ui.auth
 
-import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,21 +18,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.lmar.checkersgame.R
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
 import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
@@ -48,66 +44,91 @@ import com.lmar.checkersgame.presentation.common.components.FormTextField
 import com.lmar.checkersgame.presentation.common.components.Loading
 import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import com.lmar.checkersgame.presentation.common.components.ShadowText
-import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthState
+import com.lmar.checkersgame.presentation.common.components.SnackbarManager
+import com.lmar.checkersgame.presentation.common.event.AuthEvent
+import com.lmar.checkersgame.presentation.common.event.UiEvent
+import com.lmar.checkersgame.presentation.common.state.AuthState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
 import com.lmar.checkersgame.presentation.navigation.AppRoutes
+import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+fun LoginScreenContainer(
     navController: NavController,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
+    val authState by authViewModel.authState.collectAsState()
 
-    val authState = authViewModel.authState.observeAsState()
+    LaunchedEffect(key1 = true) {
+        authViewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    SnackbarManager.showMessage(
+                        event.snackbarEvent.message,
+                        event.snackbarEvent.type
+                    )
+                }
 
-    val context = LocalContext.current
-
-    var email by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
-
-    LaunchedEffect(authState.value) {
-        when(authState.value) {
-            AuthState.Authenticated -> navController.navigate(AppRoutes.HomeScreen.route)
-            is AuthState.Error -> {
-                Toast.makeText(context, (authState.value as AuthState.Error).message, Toast.LENGTH_SHORT).show()
-            }
-            else -> Unit
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            AppBar(
-                "Iniciar Sesión",
-                onBackAction = {
+                UiEvent.ToBack -> {
                     navController.popBackStack()
-                },
-                state = rememberTopAppBarState()
-            )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
+                }
+
+                UiEvent.ToHome -> {
+                    navController.navigate(AppRoutes.HomeScreen.route)
+                }
+
+                UiEvent.ToSignUp -> {
+                    navController.navigate(AppRoutes.SignUpScreen.route)
+                }
+
+                UiEvent.ToLogin -> {
+                    navController.navigate(AppRoutes.LoginScreen.route)
+                }
+            }
         }
-    ) { paddingValues ->
-        Box(
+    }
+
+    LoginScreen(
+        authState = authState,
+        onEvent = {
+            authViewModel.onEvent(it)
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LoginScreen(
+    authState: AuthState,
+    onEvent: (AuthEvent) -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(paddingValues)
-        ) {
+        )
+
+        Column {
+            AppBar(
+                "Iniciar Sesión",
+                onBackAction = { onEvent(AuthEvent.ToBack) },
+                state = rememberTopAppBarState()
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 32.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -131,26 +152,25 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 FormTextField(
-                    value = email,
+                    value = authState.email,
                     label = "Correo",
                     icon = Icons.Default.Email,
-                    onValueChange = { email = it }
+                    onValueChange = { onEvent(AuthEvent.EnteredEmail(it)) }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 FormPasswordTextField(
-                    value = password,
+                    value = authState.password,
                     label = "Contraseña",
                     icon = Icons.Default.Lock,
-                    onValueChange = { password = it }
+                    onValueChange = { onEvent(AuthEvent.EnteredPassword(it)) }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = { authViewModel.login(email, password) },
-                    enabled = authState.value != AuthState.Loading,
+                    onClick = { onEvent(AuthEvent.Login) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Iniciar Sesión")
@@ -172,7 +192,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .clickable {
-                                navController.navigate(AppRoutes.SignUpScreen.route)
+                                onEvent(AuthEvent.ToSignUp)
                             }
                     )
                 }
@@ -184,20 +204,21 @@ fun LoginScreen(
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
                         .clickable {
-                            println("Password!")
+                            println("¿Olvidaste tu Contraseña?")
                         }
                 )
             }
         }
-
-        if(authState.value == AuthState.Loading) {
-            Loading()
-        }
     }
+
+    if (authState.isLoading) {
+        Loading()
+    }
+
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun LoginScreenPreview() {
-    LoginScreen(rememberNavController())
+    LoginScreen(AuthState())
 }

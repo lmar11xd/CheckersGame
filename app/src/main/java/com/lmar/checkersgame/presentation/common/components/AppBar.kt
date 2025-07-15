@@ -12,6 +12,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,8 +23,11 @@ fun AppBar(
     state: TopAppBarState = rememberTopAppBarState()
 ) {
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        title = { Text(title, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp) },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+            titleContentColor = MaterialTheme.colorScheme.primary
+        ),
+        title = { Text(title, color = Color.LightGray, fontSize = 18.sp) },
         navigationIcon = {
             IconButton(
                 onClick = { onBackAction() },
@@ -31,7 +35,7 @@ fun AppBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = Color.LightGray
                 )
             }
         },

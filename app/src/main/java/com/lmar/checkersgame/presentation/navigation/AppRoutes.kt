@@ -9,4 +9,10 @@ sealed class AppRoutes(val route: String) {
     data object GameScreen: AppRoutes("game_screen")
     data object RoomScreen: AppRoutes("room_screen")
     data object RankingScreen: AppRoutes("ranking_screen")
+
+    fun withArgs(vararg args: String): String =
+        route + args.joinToString(separator = "&", prefix = "?") { "$it={$it}" }
+
+    fun withParam(key: String, value: String): String =
+        "$route?$key=$value"
 }

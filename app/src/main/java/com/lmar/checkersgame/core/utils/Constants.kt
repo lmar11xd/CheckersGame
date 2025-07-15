@@ -18,5 +18,10 @@ object Constants {
     const val POINTS_MATCH_DRAW = 5
     const val POINTS_MATCH_WIN = 10
     const val POINTS_ABORTED_MATCH = -5
+
     val PHOTO_SIZE = 150.dp
+
+    const val ERROR_MESSAGE_AUTH = "The supplied auth credential is incorrect, malformed or has expired."
+    const val ERROR_MESSAGE_ACCOUNT_EXISTS = "The email address is already in use by another account."
+
 }

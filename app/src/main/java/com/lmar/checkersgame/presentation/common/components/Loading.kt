@@ -8,10 +8,15 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,7 +41,7 @@ fun Loading2(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Loading(modifier: Modifier = Modifier) {
+fun Loading3(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition()
 
     // Animación de escala pulsante
@@ -66,4 +71,26 @@ fun Loading(modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+@Composable
+fun Loading() {
+    AlertDialog(
+        onDismissRequest = {}, // Evita que se cierre tocando fuera
+        title = {
+            Text("Cargando ...")
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.size(12.dp))
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.size(12.dp))
+            }
+        },
+        confirmButton = {
+        }
+    )
 }

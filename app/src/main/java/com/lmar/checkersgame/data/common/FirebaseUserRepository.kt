@@ -36,24 +36,6 @@ class FirebaseUserRepository @Inject constructor() : IUserRepository {
             }
     }
 
-    override suspend fun getUserById(
-        userId: String,
-        onResult: (User?) -> Unit
-    ) {
-        database.child(userId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val user = snapshot.getValue(User::class.java)
-                    onResult(user)
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Error al obtener usuario: ${error.message}")
-                    onResult(null)
-                }
-            })
-    }
-
     override suspend fun getUserById(userId: String): User? {
         return try {
             val snapshot = database.child(userId).get().await()
@@ -94,16 +76,13 @@ class FirebaseUserRepository @Inject constructor() : IUserRepository {
             }
     }
 
-    override suspend fun updateUser(
-        user: User,
-        onResult: (Boolean) -> Unit
-    ) {
-        database.child(user.id).setValue(user)
-            .addOnSuccessListener { onResult(true) }
-            .addOnFailureListener {
-                Log.e(TAG, "Error al actualizar usuario", it)
-                onResult(false)
-            }
+    override suspend fun updateUser(user: User ) {
+        try {
+            database.child(user.id).setValue(user)
+            Log.d(TAG, "Usuario actualizado con éxito: ${user.id}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al actualizar usuario", e)
+        }
     }
 
     override suspend fun updateUserScore(userId: String, newScore: Int) {
@@ -115,7 +94,7 @@ class FirebaseUserRepository @Inject constructor() : IUserRepository {
             .limitToLast(limit) // ← porque ordena ascendente, usamos limitToLast
         val snapshot = query.get().await()
 
-        if(snapshot == null) return emptyList()
+        if (snapshot == null) return emptyList()
 
         val users = snapshot.children.mapNotNull { it.getValue(User::class.java) }
             .sortedByDescending { it.score }

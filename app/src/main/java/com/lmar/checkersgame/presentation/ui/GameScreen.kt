@@ -1,6 +1,7 @@
 package com.lmar.checkersgame.presentation.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,8 +27,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberTopAppBarState
@@ -40,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,7 +76,6 @@ fun GameScreen(
     onExit: () -> Unit,
     onLeaveRoom: () -> Unit
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
     var showExitDialog by remember { mutableStateOf(false) }
 
     val isUserTurn = gameState?.turn == userId
@@ -91,8 +91,20 @@ fun GameScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+        )
+
+        Column {
             AppBar(
                 stringResource(R.string.app_name),
                 onBackAction = {
@@ -100,17 +112,7 @@ fun GameScreen(
                 },
                 state = rememberTopAppBarState()
             )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(paddingValues)
-        ) {
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,7 +134,9 @@ fun GameScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                            modifier = Modifier
+                                .size(18.dp)
+                                .padding(end = 4.dp),
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = "Tiempo",
                             tint = Color.DarkGray
@@ -149,8 +153,18 @@ fun GameScreen(
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
-                            Text("Puntos", color = Color.DarkGray, fontSize = 12.sp, modifier = Modifier.padding(end = 4.dp))
-                            Text("${scores[userId] ?: 0}", color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Puntos",
+                                color = Color.DarkGray,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Text(
+                                "${scores[userId] ?: 0}",
+                                color = Color.DarkGray,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
@@ -191,10 +205,10 @@ fun GameScreen(
                                         borderWith = 2.dp
                                     }
 
-                                    var paddingTop = if(row == 0) 4.dp else 0.dp
-                                    var paddingBottom = if(row == 7) 4.dp else 0.dp
-                                    var paddingStart = if(col == 0) 4.dp else 0.dp
-                                    var paddingEnd = if(col == 7) 4.dp else 0.dp
+                                    var paddingTop = if (row == 0) 4.dp else 0.dp
+                                    var paddingBottom = if (row == 7) 4.dp else 0.dp
+                                    var paddingStart = if (col == 0) 4.dp else 0.dp
+                                    var paddingEnd = if (col == 7) 4.dp else 0.dp
 
                                     Box(
                                         modifier = Modifier
@@ -206,7 +220,12 @@ fun GameScreen(
                                                     else -> Color(0xFFFFF8E1)
                                                 }
                                             )
-                                            .padding(start = paddingStart, top = paddingTop, bottom = paddingBottom, end = paddingEnd)
+                                            .padding(
+                                                start = paddingStart,
+                                                top = paddingTop,
+                                                bottom = paddingBottom,
+                                                end = paddingEnd
+                                            )
                                             .border(borderWith, borderColor)
                                             .clickable {
                                                 if (gameState?.status == GameStatusEnum.PLAYING) {
@@ -232,7 +251,7 @@ fun GameScreen(
                 Text(
                     text = roomState?.roomCode ?: "",
                     fontSize = 12.sp,
-                    color = Color.DarkGray,
+                    color = Color.LightGray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.End)
                 )
@@ -373,6 +392,19 @@ private fun GameScreenPreview() {
             println("Suma: ${a + b}")
         }
 
-        GameScreen(gameState, roomState, 175, Pair(0,7), "01", mapOf("01" to 100, "02" to 200), myCallback, {}, false, {}, {}, {})
+        GameScreen(
+            gameState,
+            roomState,
+            175,
+            Pair(0, 7),
+            "01",
+            mapOf("01" to 100, "02" to 200),
+            myCallback,
+            {},
+            false,
+            {},
+            {},
+            {}
+        )
     }
 }

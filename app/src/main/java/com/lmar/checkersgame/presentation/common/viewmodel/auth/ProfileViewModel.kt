@@ -1,14 +1,19 @@
 package com.lmar.checkersgame.presentation.common.viewmodel.auth
 
-import android.net.Uri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
-import com.lmar.checkersgame.domain.model.User
+import com.lmar.checkersgame.presentation.common.event.ProfileEvent
+import com.lmar.checkersgame.presentation.common.event.UiEvent
+import com.lmar.checkersgame.presentation.common.event.UiEvent.ToHome
+import com.lmar.checkersgame.presentation.common.state.ProfileState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,82 +21,114 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val authRepository: IAuthRepository,
     private val userRepository: IUserRepository
-): ViewModel() {
+) : ViewModel() {
 
     companion object {
         private const val TAG = "ProfileViewModel"
     }
 
-    private val _userState = MutableLiveData<User>()
-    val userState: MutableLiveData<User> = _userState
+    private val _profileState = MutableStateFlow<ProfileState>(ProfileState())
+    val profileState: StateFlow<ProfileState> = _profileState
 
-    private val _profileImageUri = MutableLiveData<Uri?>(null)
-    val profileImageUri: MutableLiveData<Uri?> = _profileImageUri
-
-    private val _showForm = MutableLiveData(false)
-    val showForm: LiveData<Boolean> = _showForm
-
-    private val _isLoading = MutableLiveData(false)
-    val isLoading: LiveData<Boolean> = _isLoading
+    private val _eventFlow = MutableSharedFlow<UiEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
 
     init {
-        authRepository.getCurrentUser()?.let{
-            getUserById(it.uid)
+        val isAuthenticated = authRepository.isAuthenticated()
+        _profileState.value = _profileState.value.copy(isAuthenticated = isAuthenticated)
+
+        if (isAuthenticated) {
+            authRepository.getCurrentUser()?.let {
+                getUserById(it.uid)
+            }
         }
     }
 
-    private fun getUserById(userId: String) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            userRepository.getUserById(userId) { user ->
-                _isLoading.value = false
-                user?.let {
-                    _userState.value = it
-                    listenForUpdates(it.id)
+    fun onEvent(event: ProfileEvent) {
+        when (event) {
+            is ProfileEvent.EnteredNames -> {
+                _profileState.value = _profileState.value.copy(
+                    user = _profileState.value.user.copy(names = event.value)
+                )
+            }
+
+            is ProfileEvent.EnteredImageUri -> {
+                _profileState.value = _profileState.value.copy(imageUri = event.value)
+            }
+
+
+            is ProfileEvent.ShowForm -> {
+                _profileState.value = _profileState.value.copy(isShowingForm = event.value)
+            }
+
+            is ProfileEvent.ShowMessage -> {
+
+            }
+
+            ProfileEvent.SaveForm -> {
+                saveForm()
+            }
+
+            ProfileEvent.SignOut -> {
+                logout()
+            }
+
+            ProfileEvent.ToBack -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToBack)
                 }
+            }
+            ProfileEvent.ToLogin -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToLogin)
+                }
+            }
+            ProfileEvent.ToSignUp -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToSignUp)
+                }
+            }
+        }
+    }
+
+    private fun logout() {
+        authRepository.signout()
+        _profileState.value = _profileState.value.copy(isAuthenticated = false)
+    }
+
+    private fun getUserById(userId: String) {
+        viewModelScope.launch {
+            _profileState.value = _profileState.value.copy(isLoading = true)
+            val user = userRepository.getUserById(userId)
+            _profileState.value = _profileState.value.copy(isLoading = false)
+            if (user != null) {
+                _profileState.value = _profileState.value.copy(user = user)
+                listenForUpdates(userId)
             }
         }
     }
 
     private fun listenForUpdates(userId: String) {
         userRepository.listenForUpdates(userId) { user ->
-            _userState.value = user
+            _profileState.value = _profileState.value.copy(user = user)
         }
     }
 
-    fun setProfileImage(uri: Uri?) {
-        profileImageUri.value = uri
-    }
-
-    fun changeName(value: String) {
-        if(value.isEmpty()) return
-        val currentUser = _userState.value ?: return
-        _userState.value = currentUser.copy(
-            names = value
-        )
-    }
-
-    fun showForm() {
-        _showForm.value = true
-    }
-
-    fun dismissForm() {
-        _showForm.value = false
-    }
-
     fun saveForm() {
-        val updatedUser = _userState.value ?: return
+        val updatedUser = _profileState.value.user.copy()
         updatedUser.updatedAt = System.currentTimeMillis()
-        val image = _profileImageUri.value
+        val image = _profileState.value.imageUri
 
-        _isLoading.value = true
+        _profileState.value = _profileState.value.copy(isLoading = true)
+
         if (image != null) {
             viewModelScope.launch {
                 userRepository.uploadProfileImage(updatedUser.id, image) { success, url ->
                     if (success && url != null) {
                         updatedUser.imageUrl = url
-                    }
-                    updateUser(updatedUser)
+                        updateUser(updatedUser)
+                    } else
+                        _profileState.value = _profileState.value.copy(isLoading = false)
                 }
             }
         } else {
@@ -101,10 +138,8 @@ class ProfileViewModel @Inject constructor(
 
     private fun updateUser(user: User) {
         viewModelScope.launch {
-            userRepository.updateUser(user) { success ->
-                _isLoading.value = false
-                if (success) dismissForm()
-            }
+            userRepository.updateUser(user)
+            _profileState.value = _profileState.value.copy(isLoading = false)
         }
     }
 }

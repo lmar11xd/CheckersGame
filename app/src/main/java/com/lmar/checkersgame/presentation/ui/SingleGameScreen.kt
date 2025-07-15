@@ -1,6 +1,7 @@
 package com.lmar.checkersgame.presentation.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +26,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberTopAppBarState
@@ -38,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,7 +71,6 @@ fun SingleGameScreen(
     onExit: () -> Unit,
     onLeaveRoom: () -> Unit
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
     var showExitDialog by remember { mutableStateOf(false) }
 
     val isUserTurn = gameState?.turn == userId
@@ -79,8 +79,20 @@ fun SingleGameScreen(
         showExitDialog = true
     }
 
-    Scaffold(
-        topBar = {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+        )
+
+        Column {
             AppBar(
                 stringResource(R.string.app_name),
                 onBackAction = {
@@ -88,17 +100,7 @@ fun SingleGameScreen(
                 },
                 state = rememberTopAppBarState()
             )
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(paddingValues)
-        ) {
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +122,9 @@ fun SingleGameScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                            modifier = Modifier
+                                .size(18.dp)
+                                .padding(end = 4.dp),
                             imageVector = Icons.Default.AccessTime,
                             contentDescription = "Tiempo",
                             tint = Color.DarkGray
@@ -137,8 +141,18 @@ fun SingleGameScreen(
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         ) {
-                            Text("Nivel", color = Color.DarkGray, fontSize = 12.sp, modifier = Modifier.padding(end = 4.dp))
-                            Text(gameLevel.value, color = Color.DarkGray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Nivel",
+                                color = Color.DarkGray,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Text(
+                                gameLevel.value,
+                                color = Color.DarkGray,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
@@ -179,10 +193,10 @@ fun SingleGameScreen(
                                         borderWith = 2.dp
                                     }
 
-                                    var paddingTop = if(row == 0) 4.dp else 0.dp
-                                    var paddingBottom = if(row == 7) 4.dp else 0.dp
-                                    var paddingStart = if(col == 0) 4.dp else 0.dp
-                                    var paddingEnd = if(col == 7) 4.dp else 0.dp
+                                    var paddingTop = if (row == 0) 4.dp else 0.dp
+                                    var paddingBottom = if (row == 7) 4.dp else 0.dp
+                                    var paddingStart = if (col == 0) 4.dp else 0.dp
+                                    var paddingEnd = if (col == 7) 4.dp else 0.dp
 
                                     Box(
                                         modifier = Modifier
@@ -194,7 +208,12 @@ fun SingleGameScreen(
                                                     else -> Color(0xFFFFF8E1)
                                                 }
                                             )
-                                            .padding(start = paddingStart, top = paddingTop, bottom = paddingBottom, end = paddingEnd)
+                                            .padding(
+                                                start = paddingStart,
+                                                top = paddingTop,
+                                                bottom = paddingBottom,
+                                                end = paddingEnd
+                                            )
                                             .border(borderWith, borderColor)
                                             .clickable {
                                                 if (gameState?.status == GameStatusEnum.PLAYING) {
@@ -296,6 +315,7 @@ fun SingleGameScreen(
             }
         }
     }
+
 }
 
 @Preview(showBackground = true)
@@ -315,6 +335,16 @@ private fun SingleGameScreenPreview() {
             println("Suma: ${a + b}")
         }
 
-        SingleGameScreen(gameState, 175, Difficulty.EASY, Pair(0,7), "01", myCallback, {}, {}, {}, {})
+        SingleGameScreen(
+            gameState,
+            175,
+            Difficulty.EASY,
+            Pair(0, 7),
+            "01",
+            myCallback,
+            {},
+            {},
+            {},
+            {})
     }
 }
