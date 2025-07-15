@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.presentation.ui
+package com.lmar.checkersgame.presentation.ui.screen
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
@@ -21,10 +21,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,24 +34,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.GlowingCard
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.components.RoomTextField
+import com.lmar.checkersgame.presentation.ui.event.RoomEvent
+import com.lmar.checkersgame.presentation.ui.state.RoomState
+import com.lmar.checkersgame.presentation.viewmodel.RoomViewModel
+
+@Composable
+fun RoomScreenContainer(navController: NavHostController) {
+    val roomViewModel: RoomViewModel = hiltViewModel()
+    val roomState by roomViewModel.roomState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            coroutineScope,
+            roomViewModel.eventFlow,
+        )
+    }
+
+    RoomScreen(
+        roomState,
+        onEvent = {
+            roomViewModel.onEvent(it)
+        }
+    )
+}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoomScreen(
-    onCreateRoom: () -> Unit,
-    onJoinRoom: (code: String) -> Unit,
-    onBackAction: () -> Unit,
+private fun RoomScreen(
+    roomState: RoomState = RoomState(),
+    onEvent: (RoomEvent) -> Unit = {}
 ) {
-    var code by remember { mutableStateOf("") }
-    var validationMessage by remember { mutableStateOf("") }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -68,7 +90,7 @@ fun RoomScreen(
         Column {
             AppBar(
                 "Multijugador",
-                onBackAction = onBackAction,
+                onBackAction = { onEvent(RoomEvent.ToBack) },
                 state = rememberTopAppBarState()
             )
 
@@ -111,8 +133,8 @@ fun RoomScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RoomTextField(
-                                value = code,
-                                onValueChange = { code = it },
+                                value = roomState.roomCode,
+                                onValueChange = { onEvent(RoomEvent.EnteredRoomCode(it)) },
                                 keyboardType = KeyboardType.Number,
                                 label = "Código de Partida",
                                 modifier = Modifier.weight(1f)
@@ -120,11 +142,7 @@ fun RoomScreen(
 
                             Button(
                                 onClick = {
-                                    if (code.isEmpty()) {
-                                        validationMessage = ""
-                                    } else {
-                                        onJoinRoom(code)
-                                    }
+                                    onEvent(RoomEvent.JoinRoom)
                                 },
                                 colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
                                 shape = RoundedCornerShape(10.dp),
@@ -133,12 +151,6 @@ fun RoomScreen(
                                 Text("Ir")
                             }
                         }
-
-                        Text(
-                            validationMessage,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontSize = 9.sp
-                        )
                     }
                 }
 
@@ -167,7 +179,7 @@ fun RoomScreen(
                         Spacer(modifier = Modifier.size(10.dp))
 
                         Button(
-                            onClick = onCreateRoom,
+                            onClick = { onEvent(RoomEvent.CreateRoom) },
                             shape = RoundedCornerShape(10.dp),
                         ) {
                             Text("Jugar")
@@ -184,6 +196,6 @@ fun RoomScreen(
 @Composable
 private fun RoomScreenPreview() {
     CheckersGameTheme {
-        RoomScreen({}, {}, {})
+        RoomScreen()
     }
 }

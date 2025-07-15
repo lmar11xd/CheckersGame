@@ -4,14 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lmar.checkersgame.core.utils.Constants
+import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
-import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.presentation.common.components.SnackbarEvent
 import com.lmar.checkersgame.presentation.common.components.SnackbarType
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.event.UiEvent
-import com.lmar.checkersgame.presentation.common.event.UiEvent.ShowSnackbar
 import com.lmar.checkersgame.presentation.common.state.AuthState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -73,12 +72,6 @@ class AuthViewModel @Inject constructor(
                 )
             }
 
-            is AuthEvent.ShowMessage -> {
-                viewModelScope.launch {
-                    _eventFlow.emit(ShowSnackbar(SnackbarEvent(event.message, event.type)))
-                }
-            }
-
             AuthEvent.Login -> {
                 login()
             }
@@ -87,9 +80,21 @@ class AuthViewModel @Inject constructor(
                 signup()
             }
 
+            is AuthEvent.ShowMessage -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ShowSnackbar(SnackbarEvent(event.message, event.type)))
+                }
+            }
+
             AuthEvent.ToHome -> {
                 viewModelScope.launch {
                     _eventFlow.emit(UiEvent.ToHome)
+                }
+            }
+
+            AuthEvent.ToLogin -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToLogin)
                 }
             }
 
@@ -104,12 +109,6 @@ class AuthViewModel @Inject constructor(
                     _eventFlow.emit(UiEvent.ToBack)
                 }
             }
-
-            AuthEvent.ToLogin -> {
-                viewModelScope.launch {
-                    _eventFlow.emit(UiEvent.ToLogin)
-                }
-            }
         }
     }
 
@@ -122,7 +121,12 @@ class AuthViewModel @Inject constructor(
 
     fun login() {
         if (_authState.value.email.isBlank() || _authState.value.password.isBlank()) {
-            onEvent(AuthEvent.ShowMessage("¡Correo y/o contraseña no pueden ser vacías!", SnackbarType.WARN))
+            onEvent(
+                AuthEvent.ShowMessage(
+                    "¡Correo y/o contraseña no pueden ser vacías!",
+                    SnackbarType.WARN
+                )
+            )
             return
         }
 
@@ -140,8 +144,13 @@ class AuthViewModel @Inject constructor(
             .addOnFailureListener { error ->
                 _authState.value = _authState.value.copy(isLoading = false)
                 Log.e(TAG, "Error al logearse: ${error.message}")
-                if(error.message == Constants.ERROR_MESSAGE_AUTH) {
-                    onEvent(AuthEvent.ShowMessage("Correo y/o contraseña incorrectos", SnackbarType.WARN))
+                if (error.message == Constants.ERROR_MESSAGE_AUTH) {
+                    onEvent(
+                        AuthEvent.ShowMessage(
+                            "Correo y/o contraseña incorrectos",
+                            SnackbarType.WARN
+                        )
+                    )
                 } else {
                     onEvent(AuthEvent.ShowMessage("Error al logearse", SnackbarType.ERROR))
                 }
@@ -165,7 +174,12 @@ class AuthViewModel @Inject constructor(
         }
 
         if (_authState.value.password.length < 6) {
-            onEvent(AuthEvent.ShowMessage("¡Contraseña debe tener al menos 6 caracteres!", SnackbarType.WARN))
+            onEvent(
+                AuthEvent.ShowMessage(
+                    "¡Contraseña debe tener al menos 6 caracteres!",
+                    SnackbarType.WARN
+                )
+            )
             return
         }
 
@@ -208,8 +222,13 @@ class AuthViewModel @Inject constructor(
             .addOnFailureListener { error ->
                 _authState.value = _authState.value.copy(isLoading = false)
                 Log.e(TAG, "Error al registrar usuario: ${error.message}")
-                if(error.message == Constants.ERROR_MESSAGE_ACCOUNT_EXISTS) {
-                    onEvent(AuthEvent.ShowMessage("El correo ya ha sido registrado", SnackbarType.WARN))
+                if (error.message == Constants.ERROR_MESSAGE_ACCOUNT_EXISTS) {
+                    onEvent(
+                        AuthEvent.ShowMessage(
+                            "El correo ya ha sido registrado",
+                            SnackbarType.WARN
+                        )
+                    )
                 } else {
                     onEvent(AuthEvent.ShowMessage("Error al registrar usuario", SnackbarType.ERROR))
                 }

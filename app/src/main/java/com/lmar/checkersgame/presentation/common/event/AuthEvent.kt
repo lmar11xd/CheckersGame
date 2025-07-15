@@ -9,11 +9,6 @@ sealed class AuthEvent {
     data class EnteredNames(val value: String) : AuthEvent()
     data class EnteredImageUrl(val value: String) : AuthEvent()
 
-    // Snackbar Events
-    data class ShowMessage(
-        val message: String, val type: SnackbarType = SnackbarType.INFO
-    ) : AuthEvent()
-
     // Authentication Events
     object Login : AuthEvent()
     object SignUp : AuthEvent()
@@ -23,4 +18,6 @@ sealed class AuthEvent {
     object ToLogin : AuthEvent()
     object ToSignUp : AuthEvent()
     object ToBack : AuthEvent()
+
+    data class ShowMessage(val message: String, val type: SnackbarType) : AuthEvent()
 }

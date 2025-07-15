@@ -6,13 +6,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,18 +20,19 @@ import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.presentation.common.components.Snackbar
 import com.lmar.checkersgame.presentation.common.components.SnackbarManager
 import com.lmar.checkersgame.presentation.common.components.SnackbarType
+import com.lmar.checkersgame.presentation.common.event.UiEvent
 import com.lmar.checkersgame.presentation.common.ui.auth.LoginScreenContainer
 import com.lmar.checkersgame.presentation.common.ui.auth.ProfileScreenContainer
 import com.lmar.checkersgame.presentation.common.ui.auth.SignUpScreenContainer
-import com.lmar.checkersgame.presentation.ui.GameScreen
-import com.lmar.checkersgame.presentation.ui.HomeScreenContainer
-import com.lmar.checkersgame.presentation.ui.RankingScreen
-import com.lmar.checkersgame.presentation.ui.RoomScreen
-import com.lmar.checkersgame.presentation.ui.SingleGameScreen
-import com.lmar.checkersgame.presentation.viewmodel.GameViewModel
-import com.lmar.checkersgame.presentation.viewmodel.RankingViewModel
-import com.lmar.checkersgame.presentation.viewmodel.RoomViewModel
-import com.lmar.checkersgame.presentation.viewmodel.SingleGameViewModel
+import com.lmar.checkersgame.presentation.ui.screen.GameScreenContainer
+import com.lmar.checkersgame.presentation.ui.screen.HomeScreenContainer
+import com.lmar.checkersgame.presentation.ui.screen.RankingScreenContainer
+import com.lmar.checkersgame.presentation.ui.screen.RoomScreenContainer
+import com.lmar.checkersgame.presentation.ui.screen.SingleGameScreenContainer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -43,8 +42,8 @@ fun AppNavigation() {
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarType by remember { mutableStateOf(SnackbarType.INFO) }
 
-    // Escuchar mensajes del manager
     LaunchedEffect(Unit) {
+        // Escuchar mensajes del manager
         SnackbarManager.snackbarFlow.collect { event ->
             snackbarType = event.type
             snackbarHostState.showSnackbar(
@@ -117,95 +116,33 @@ fun AppNavigation() {
 
 }
 
-@Composable
-fun SingleGameScreenContainer(navController: NavHostController) {
-    val viewModel: SingleGameViewModel = hiltViewModel()
-    val gameState by viewModel.gameState.collectAsState()
-    val gameTime by viewModel.gameTime.collectAsState()
-    val selectedCell by viewModel.selectedCell.collectAsState()
-    val userId = viewModel.userId
-    val gameLevel = viewModel.gameLevel
-
-    SingleGameScreen(
-        gameState = gameState,
-        gameTime = gameTime,
-        gameLevel = gameLevel,
-        selectedCell = selectedCell,
-        userId = userId,
-        onCellClick = { row, col -> viewModel.onCellClick(row, col) },
-        onRematch = { viewModel.resetGame() },
-        onAbortGame = {
-            navController.popBackStack()
-        },
-        onLeaveRoom = {
-            navController.popBackStack()
-        },
-        onExit = {
-            navController.popBackStack()
-        }
-    )
-}
-
-@Composable
-fun GameScreenContainer(navController: NavHostController) {
-    val viewModel: GameViewModel = hiltViewModel()
-    val gameState by viewModel.gameState.collectAsState()
-    val roomState by viewModel.roomState.collectAsState()
-    val gameTime by viewModel.gameTime.collectAsState()
-    val scores by viewModel.scores.collectAsState()
-    val selectedCell by viewModel.selectedCell.collectAsState()
-    val rematchRequested by viewModel.rematchRequested.collectAsState()
-    val userId = viewModel.userId
-
-    GameScreen(
-        gameState = gameState,
-        roomState = roomState,
-        gameTime = gameTime,
-        selectedCell = selectedCell,
-        userId = userId,
-        scores = scores,
-        onCellClick = { row, col -> viewModel.onCellClick(row, col) },
-        onRematch = { viewModel.requestRematch() },
-        rematchRequested = rematchRequested,
-        onAbortGame = {
-            viewModel.abortGame()
-            navController.popBackStack()
-        },
-        onLeaveRoom = {
-            viewModel.leaveRoom()
-            navController.popBackStack()
-        },
-        onExit = {
-            navController.popBackStack()
-        }
-    )
-}
-
-@Composable
-fun RoomScreenContainer(navController: NavHostController) {
-    val viewModel: RoomViewModel = hiltViewModel()
-
-    RoomScreen(
-        onCreateRoom = {
-            viewModel.createRoom { roomId ->
-                navController.navigate(AppRoutes.GameScreen.withParam("roomId", roomId))
-            }
-        },
-        onJoinRoom = { code ->
-            viewModel.searchRoomByCode(code) { success, roomId ->
-                if (success) {
-                    navController.navigate(AppRoutes.GameScreen.withParam("roomId", roomId))
+fun NavController.handleUiEvents(
+    scope: CoroutineScope,
+    uiEventFlow: Flow<UiEvent>,
+    onUnknownEvent: ((UiEvent) -> Unit)? = null
+) {
+    scope.launch {
+        uiEventFlow.collectLatest { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> {
+                    SnackbarManager.showMessage(
+                        message = event.snackbarEvent.message,
+                        type = event.snackbarEvent.type
+                    )
                 }
+
+                UiEvent.ToBack -> popBackStack()
+                UiEvent.ToHome -> navigate(AppRoutes.HomeScreen.route)
+                UiEvent.ToSignUp -> navigate(AppRoutes.SignUpScreen.route)
+                UiEvent.ToLogin -> navigate(AppRoutes.LoginScreen.route)
+                UiEvent.ToProfile -> navigate(AppRoutes.ProfileScreen.route)
+                is UiEvent.ToSingleGame -> navigate(AppRoutes.SingleGameScreen.withParam("level", event.level.name))
+                is UiEvent.ToGame -> navigate(AppRoutes.GameScreen.withParam("roomId", event.roomId))
+                UiEvent.ToRanking -> navigate(AppRoutes.RankingScreen.route)
+                UiEvent.ToRoom -> navigate(AppRoutes.RoomScreen.route)
+                is UiEvent.ToRoute -> navigate(event.route)
+                else -> onUnknownEvent?.invoke(event)
             }
-        },
-        onBackAction = { navController.popBackStack() }
-    )
-}
-
-@Composable
-fun RankingScreenContainer(navController: NavHostController) {
-    val viewModel: RankingViewModel = hiltViewModel()
-    val topPlayers by viewModel.topPlayers.collectAsState()
-
-    RankingScreen(topPlayers)
+        }
+    }
 }

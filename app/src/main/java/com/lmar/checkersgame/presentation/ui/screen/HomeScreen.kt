@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.presentation.ui
+package com.lmar.checkersgame.presentation.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,34 +57,36 @@ import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.presentation.common.components.GlowingCard
 import com.lmar.checkersgame.presentation.common.components.ShadowText
+import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.state.AuthState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
-import com.lmar.checkersgame.presentation.navigation.AppRoutes
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
+import com.lmar.checkersgame.presentation.ui.event.HomeEvent
+import com.lmar.checkersgame.presentation.viewmodel.HomeViewModel
 
 @Composable
 fun HomeScreenContainer(
     navController: NavHostController,
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
     val authState by authViewModel.authState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         authViewModel.checkAuthStatus()
+
+        navController.handleUiEvents(
+            scope = coroutineScope,
+            uiEventFlow = homeViewModel.eventFlow
+        )
     }
 
     HomeScreen(
         authState,
-        onProfileClick = { navController.navigate(AppRoutes.ProfileScreen.route) },
-        onRoomClick = { navController.navigate(AppRoutes.RoomScreen.route) },
-        onGameClick = { level ->
-            navController.navigate(
-                AppRoutes.SingleGameScreen.withParam(
-                    "level",
-                    level.name
-                )
-            )
-        },
-        onRankingClick = { navController.navigate(AppRoutes.RankingScreen.route) }
+        onEvent = {
+            homeViewModel.onEvent(it)
+        }
     )
 }
 
@@ -91,10 +94,7 @@ fun HomeScreenContainer(
 @Composable
 private fun HomeScreen(
     authState: AuthState,
-    onProfileClick: () -> Unit = {},
-    onRoomClick: () -> Unit = {},
-    onGameClick: (Difficulty) -> Unit = {},
-    onRankingClick: () -> Unit = {}
+    onEvent: (HomeEvent) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -123,7 +123,7 @@ private fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = onProfileClick,
+                        onClick = { onEvent(HomeEvent.ToProfile) },
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccountCircle,
@@ -188,7 +188,7 @@ private fun HomeScreen(
 
                 if (authState.isAuthenticated) {
                     Button(
-                        onClick = onRoomClick,
+                        onClick = { onEvent(HomeEvent.ToRoom) },
                         colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.width(200.dp)
                     ) {
@@ -198,7 +198,7 @@ private fun HomeScreen(
                     Spacer(modifier = Modifier.size(4.dp))
 
                     Button(
-                        onClick = onRankingClick,
+                        onClick = { onEvent(HomeEvent.ToRanking) },
                         colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
                         modifier = Modifier.width(200.dp)
                     ) {
@@ -234,17 +234,17 @@ private fun HomeScreen(
 
                 BottomSheetItem(title = "Fácil") {
                     showBottomSheet = false
-                    onGameClick(Difficulty.EASY)
+                    onEvent(HomeEvent.ToSingleGame(Difficulty.EASY))
                 }
 
                 BottomSheetItem(title = "Normal") {
                     showBottomSheet = false
-                    onGameClick(Difficulty.MEDIUM)
+                    onEvent(HomeEvent.ToSingleGame(Difficulty.MEDIUM))
                 }
 
                 BottomSheetItem(title = "Difícil") {
                     showBottomSheet = false
-                    onGameClick(Difficulty.HARD)
+                    onEvent(HomeEvent.ToSingleGame(Difficulty.HARD))
                 }
             }
         }

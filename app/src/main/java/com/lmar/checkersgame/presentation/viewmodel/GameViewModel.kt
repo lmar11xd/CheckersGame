@@ -16,9 +16,9 @@ import com.lmar.checkersgame.domain.repository.IGameRepository
 import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
-import com.lmar.checkersgame.domain.usecase.AbortGameUseCase
-import com.lmar.checkersgame.domain.usecase.EndGameUseCase
-import com.lmar.checkersgame.domain.usecase.MovePieceUseCase
+import com.lmar.checkersgame.domain.usecase.game.AbortGameUseCase
+import com.lmar.checkersgame.domain.usecase.game.EndGameUseCase
+import com.lmar.checkersgame.domain.usecase.game.MovePieceUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -78,16 +78,27 @@ class GameViewModel @Inject constructor(
             val user = userRepository.getUserById(userId) ?: return@launch
             val player = Player(userId, user.getFirstName())
 
-            roomRepository.getRoomById(roomId) {
-                _roomState.value = it
-            }
+            val room = roomRepository.getRoomById(roomId) ?: return@launch
+            _roomState.value = room
 
             gameId = repository.createOrJoinGame(player, roomId)
 
-            movePieceUseCase =
-                MovePieceUseCase(repository, viewModelScope, userId, gameId, soundPlayer)
-            endGameUseCase =
-                EndGameUseCase(repository, userRepository, viewModelScope, gameId, soundPlayer)
+            movePieceUseCase = MovePieceUseCase(
+                repository,
+                viewModelScope,
+                userId,
+                gameId,
+                soundPlayer
+            )
+
+            endGameUseCase = EndGameUseCase(
+                repository,
+                userRepository,
+                viewModelScope,
+                gameId,
+                soundPlayer
+            )
+
             abortGameUseCase = AbortGameUseCase(
                 repository,
                 roomRepository,

@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.presentation.ui
+package com.lmar.checkersgame.presentation.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -24,15 +24,16 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,35 +46,59 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
-import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.logic.generateInitialBoard
 import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.model.Player
 import com.lmar.checkersgame.domain.model.isNotEmpty
 import com.lmar.checkersgame.presentation.common.components.AppBar
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.components.Piece3D
 import com.lmar.checkersgame.presentation.ui.components.formatTime
+import com.lmar.checkersgame.presentation.ui.event.GameEvent
+import com.lmar.checkersgame.presentation.ui.state.GameState
+import com.lmar.checkersgame.presentation.viewmodel.SingleGameViewModel
+
+@Composable
+fun SingleGameScreenContainer(
+    navController: NavHostController,
+    singleGameViewModel: SingleGameViewModel = hiltViewModel()
+) {
+    val gameState by singleGameViewModel.gameState.collectAsState()
+    val userId = singleGameViewModel.userId
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            scope = coroutineScope,
+            uiEventFlow = singleGameViewModel.eventFlow
+        )
+    }
+
+    SingleGameScreen(
+        gameState = gameState,
+        userId = userId,
+        onEvent = {
+            singleGameViewModel.onEvent(it)
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SingleGameScreen(
-    gameState: Game?,
-    gameTime: Int,
-    gameLevel: Difficulty,
-    selectedCell: Pair<Int, Int>?,
+private fun SingleGameScreen(
+    gameState: GameState = GameState(),
     userId: String,
-    onCellClick: (Int, Int) -> Unit,
-    onRematch: () -> Unit,
-    onAbortGame: () -> Unit,
-    onExit: () -> Unit,
-    onLeaveRoom: () -> Unit
+    onEvent: (GameEvent) -> Unit = {}
 ) {
     var showExitDialog by remember { mutableStateOf(false) }
 
-    val isUserTurn = gameState?.turn == userId
+    val isUserTurn = gameState.game.turn == userId
 
     BackHandler {
         showExitDialog = true
@@ -107,8 +132,8 @@ fun SingleGameScreen(
                     .padding(8.dp)
             ) {
                 val oponentName =
-                    (if (gameState?.player1?.id == userId) gameState.player2?.name
-                    else gameState?.player1?.name) ?: ""
+                    (if (gameState.game.player1?.id == userId) gameState.game.player2?.name
+                    else gameState.game.player1?.name) ?: ""
 
                 // Info
                 Row(
@@ -129,7 +154,11 @@ fun SingleGameScreen(
                             contentDescription = "Tiempo",
                             tint = Color.DarkGray
                         )
-                        Text(formatTime(gameTime), color = Color.DarkGray, fontSize = 12.sp)
+                        Text(
+                            formatTime(gameState.game.gameTime),
+                            color = Color.DarkGray,
+                            fontSize = 12.sp
+                        )
                     }
 
                     Box(
@@ -148,7 +177,7 @@ fun SingleGameScreen(
                                 modifier = Modifier.padding(end = 4.dp)
                             )
                             Text(
-                                gameLevel.value,
+                                gameState.gameLevel.value,
                                 color = Color.DarkGray,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -182,9 +211,9 @@ fun SingleGameScreen(
                         for (row in 0 until 8) {
                             Row(modifier = Modifier.weight(1f)) {
                                 for (col in 0 until 8) {
-                                    val piece = gameState?.board[row][col]
+                                    val piece = gameState.game.board[row][col]
                                     val isDark = (row + col) % 2 == 1
-                                    val isSelected = selectedCell == (row to col)
+                                    val isSelected = gameState.selectedCell == (row to col)
 
                                     var borderColor = Color.Black
                                     var borderWith = 1.dp
@@ -216,13 +245,13 @@ fun SingleGameScreen(
                                             )
                                             .border(borderWith, borderColor)
                                             .clickable {
-                                                if (gameState?.status == GameStatusEnum.PLAYING) {
-                                                    onCellClick(row, col)
+                                                if (gameState.game.status == GameStatusEnum.PLAYING) {
+                                                    onEvent(GameEvent.CellClicked(row, col))
                                                 }
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (piece?.isNotEmpty() == true) {
+                                        if (piece.isNotEmpty() == true) {
                                             Piece3D(
                                                 modifier = Modifier.size(36.dp),
                                                 baseColor = if (piece.playerId == userId) Color.Red else Color.Black,
@@ -236,12 +265,12 @@ fun SingleGameScreen(
                     }
                 }
 
-                if (gameState?.status == GameStatusEnum.FINISHED) {
+                if (gameState.game.status == GameStatusEnum.FINISHED) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = {
                             Text(
-                                text = when (gameState.winner) {
+                                text = when (gameState.game.winner) {
                                     null -> "Empate"
                                     userId -> "¡Felicidades, ganaste!"
                                     else -> "Perdiste"
@@ -253,19 +282,19 @@ fun SingleGameScreen(
                             Text("¿Qué deseas hacer?")
                         },
                         confirmButton = {
-                            TextButton(onClick = onRematch) {
+                            TextButton(onClick = { onEvent(GameEvent.Rematch) }) {
                                 Text("Revancha")
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = onLeaveRoom) {
+                            TextButton(onClick = { onEvent(GameEvent.ToBack) }) {
                                 Text("Salir")
                             }
                         }
                     )
                 }
 
-                if (gameState?.status == GameStatusEnum.ABORTED && gameState.winner == userId) {
+                if (gameState.game.status == GameStatusEnum.ABORTED && gameState.game.winner == userId) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = {
@@ -275,7 +304,7 @@ fun SingleGameScreen(
                             Text("Tu oponente abandonó la partida.")
                         },
                         confirmButton = {
-                            TextButton(onClick = onExit) {
+                            TextButton(onClick = { onEvent(GameEvent.ToBack) }) {
                                 Text("Salir")
                             }
                         }
@@ -300,7 +329,7 @@ fun SingleGameScreen(
                         confirmButton = {
                             TextButton(onClick = {
                                 showExitDialog = false
-                                onAbortGame()
+                                onEvent(GameEvent.ToBack)
                             }) {
                                 Text("Salir")
                             }
@@ -323,7 +352,7 @@ fun SingleGameScreen(
 private fun SingleGameScreenPreview() {
     CheckersGameTheme {
         val board = generateInitialBoard("01", "02")
-        val gameState = Game(
+        val game = Game(
             "12345",
             Player("01", "Player 1"),
             Player("02", "Player 2"),
@@ -331,20 +360,9 @@ private fun SingleGameScreenPreview() {
             GameStatusEnum.PLAYING
         )
 
-        val myCallback: (Int, Int) -> Unit = { a, b ->
-            println("Suma: ${a + b}")
-        }
-
         SingleGameScreen(
-            gameState,
-            175,
-            Difficulty.EASY,
-            Pair(0, 7),
-            "01",
-            myCallback,
-            {},
-            {},
-            {},
-            {})
+            GameState(game),
+            "01"
+        )
     }
 }

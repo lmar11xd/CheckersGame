@@ -9,16 +9,14 @@ sealed class ProfileEvent {
     data class ShowForm(val value: Boolean): ProfileEvent()
 
     // Snackbars Events
-    data class ShowMessage(
-        val message: String, val type: SnackbarType = SnackbarType.INFO
-    ) : ProfileEvent()
+    data class ShowMessage(val message: String, val type: SnackbarType) : ProfileEvent()
 
     // Form Events
     object SaveForm: ProfileEvent()
     object SignOut: ProfileEvent()
 
     // Navigation Events
-    object ToBack: ProfileEvent()
     object ToLogin : ProfileEvent()
     object ToSignUp : ProfileEvent()
+    object ToBack: ProfileEvent()
 }

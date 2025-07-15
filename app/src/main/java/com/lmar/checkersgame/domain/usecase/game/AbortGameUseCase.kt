@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.domain.usecase
+package com.lmar.checkersgame.domain.usecase.game
 
 import com.lmar.checkersgame.core.utils.Constants
 import com.lmar.checkersgame.domain.enum.GameStatusEnum

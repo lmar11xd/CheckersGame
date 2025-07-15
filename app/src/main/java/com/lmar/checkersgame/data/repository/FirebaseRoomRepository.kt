@@ -52,22 +52,14 @@ class FirebaseRoomRepository @Inject constructor() : IRoomRepository {
         return roomId
     }
 
-    override suspend fun getRoomById(
-        roomId: String,
-        onResult: (Room?) -> Unit
-    ) {
-        database.child(roomId)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val room = snapshot.getValue(Room::class.java)
-                    onResult(room)
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Error al obtener sala: ${error.message}")
-                    onResult(null)
-                }
-            })
+    override suspend fun getRoomById(roomId: String): Room? {
+        return try {
+            val snapshot = database.child(roomId).get().await()
+            snapshot.getValue(Room::class.java)
+        } catch (ex: Exception) {
+            Log.e(TAG, "Error al obtener sala: ${ex.message}", ex)
+            null
+        }
     }
 
     override suspend fun getRoomByCode(roomCode: String): Room? {

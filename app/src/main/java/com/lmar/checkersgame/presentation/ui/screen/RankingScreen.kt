@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.presentation.ui
+package com.lmar.checkersgame.presentation.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,6 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -22,15 +26,44 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.presentation.common.components.AppBar
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
+import com.lmar.checkersgame.presentation.ui.event.RankingEvent
+import com.lmar.checkersgame.presentation.viewmodel.RankingViewModel
+
+@Composable
+fun RankingScreenContainer(
+    navController: NavHostController
+) {
+    val coroutineScope = rememberCoroutineScope()
+
+    val viewModel: RankingViewModel = hiltViewModel()
+    val topPlayers by viewModel.topPlayers.collectAsState()
+
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            coroutineScope,
+            viewModel.eventFlow
+        )
+    }
+
+    RankingScreen(
+        topPlayers,
+        onEvent = { event ->
+        viewModel.onEvent(event)}
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RankingScreen(
-    topPlayers: List<User>
+private fun RankingScreen(
+    topPlayers: List<User>,
+    onEvent: (RankingEvent) -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -50,7 +83,7 @@ fun RankingScreen(
             AppBar(
                 "Ranking",
                 onBackAction = {
-                    //onEvent(AuthEvent.ToBack)
+                    onEvent(RankingEvent.ToBack)
                 },
                 state = rememberTopAppBarState()
             )

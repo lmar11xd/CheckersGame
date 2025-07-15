@@ -30,16 +30,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,13 +58,10 @@ import com.lmar.checkersgame.presentation.common.components.HeadingTextComponent
 import com.lmar.checkersgame.presentation.common.components.ImageCircle
 import com.lmar.checkersgame.presentation.common.components.Loading
 import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
-import com.lmar.checkersgame.presentation.common.components.SnackbarManager
 import com.lmar.checkersgame.presentation.common.event.ProfileEvent
-import com.lmar.checkersgame.presentation.common.event.UiEvent
 import com.lmar.checkersgame.presentation.common.state.ProfileState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.ProfileViewModel
-import com.lmar.checkersgame.presentation.navigation.AppRoutes
-import kotlinx.coroutines.flow.collectLatest
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 
 @Composable
 fun ProfileScreenContainer(
@@ -75,34 +69,13 @@ fun ProfileScreenContainer(
     profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
     val profileState by profileViewModel.profileState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = true) {
-        profileViewModel.eventFlow.collectLatest { event ->
-            when (event) {
-                is UiEvent.ShowSnackbar -> {
-                    SnackbarManager.showMessage(
-                        event.snackbarEvent.message,
-                        event.snackbarEvent.type
-                    )
-                }
-
-                UiEvent.ToBack -> {
-                    navController.popBackStack()
-                }
-
-                UiEvent.ToHome -> {
-                    navController.navigate(AppRoutes.HomeScreen.route)
-                }
-
-                UiEvent.ToSignUp -> {
-                    navController.navigate(AppRoutes.SignUpScreen.route)
-                }
-
-                UiEvent.ToLogin -> {
-                    navController.navigate(AppRoutes.LoginScreen.route)
-                }
-            }
-        }
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            scope = coroutineScope,
+            uiEventFlow = profileViewModel.eventFlow
+        )
     }
 
     ProfileScreen(
@@ -371,5 +344,5 @@ private fun ProfileScreen(
 @Preview(showBackground = true)
 @Composable
 private fun ProfileScreenPreview() {
-    ProfileScreen(ProfileState(), {})
+    ProfileScreen(ProfileState())
 }

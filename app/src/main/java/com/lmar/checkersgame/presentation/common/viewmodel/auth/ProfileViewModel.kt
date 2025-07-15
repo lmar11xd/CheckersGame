@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
+import com.lmar.checkersgame.presentation.common.components.SnackbarEvent
 import com.lmar.checkersgame.presentation.common.event.ProfileEvent
 import com.lmar.checkersgame.presentation.common.event.UiEvent
-import com.lmar.checkersgame.presentation.common.event.UiEvent.ToHome
 import com.lmar.checkersgame.presentation.common.state.ProfileState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -61,10 +61,6 @@ class ProfileViewModel @Inject constructor(
                 _profileState.value = _profileState.value.copy(isShowingForm = event.value)
             }
 
-            is ProfileEvent.ShowMessage -> {
-
-            }
-
             ProfileEvent.SaveForm -> {
                 saveForm()
             }
@@ -73,16 +69,24 @@ class ProfileViewModel @Inject constructor(
                 logout()
             }
 
+            is ProfileEvent.ShowMessage -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ShowSnackbar(SnackbarEvent(event.message, event.type)))
+                }
+            }
+
             ProfileEvent.ToBack -> {
                 viewModelScope.launch {
                     _eventFlow.emit(UiEvent.ToBack)
                 }
             }
+
             ProfileEvent.ToLogin -> {
                 viewModelScope.launch {
                     _eventFlow.emit(UiEvent.ToLogin)
                 }
             }
+
             ProfileEvent.ToSignUp -> {
                 viewModelScope.launch {
                     _eventFlow.emit(UiEvent.ToSignUp)

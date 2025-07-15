@@ -17,13 +17,13 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,7 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
@@ -44,48 +44,24 @@ import com.lmar.checkersgame.presentation.common.components.FormTextField
 import com.lmar.checkersgame.presentation.common.components.Loading
 import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import com.lmar.checkersgame.presentation.common.components.ShadowText
-import com.lmar.checkersgame.presentation.common.components.SnackbarManager
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
-import com.lmar.checkersgame.presentation.common.event.UiEvent
 import com.lmar.checkersgame.presentation.common.state.AuthState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
-import com.lmar.checkersgame.presentation.navigation.AppRoutes
-import kotlinx.coroutines.flow.collectLatest
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 
 @Composable
 fun LoginScreenContainer(
-    navController: NavController,
+    navController: NavHostController,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by authViewModel.authState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = true) {
-        authViewModel.eventFlow.collectLatest { event ->
-            when (event) {
-                is UiEvent.ShowSnackbar -> {
-                    SnackbarManager.showMessage(
-                        event.snackbarEvent.message,
-                        event.snackbarEvent.type
-                    )
-                }
-
-                UiEvent.ToBack -> {
-                    navController.popBackStack()
-                }
-
-                UiEvent.ToHome -> {
-                    navController.navigate(AppRoutes.HomeScreen.route)
-                }
-
-                UiEvent.ToSignUp -> {
-                    navController.navigate(AppRoutes.SignUpScreen.route)
-                }
-
-                UiEvent.ToLogin -> {
-                    navController.navigate(AppRoutes.LoginScreen.route)
-                }
-            }
-        }
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            scope = coroutineScope,
+            uiEventFlow = authViewModel.eventFlow
+        )
     }
 
     LoginScreen(

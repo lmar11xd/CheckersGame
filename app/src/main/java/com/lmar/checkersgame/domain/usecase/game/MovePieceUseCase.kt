@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.domain.usecase
+package com.lmar.checkersgame.domain.usecase.game
 
 import com.lmar.checkersgame.core.utils.Constants
 import com.lmar.checkersgame.data.sound.SoundPlayerWrapper
@@ -13,6 +13,7 @@ import com.lmar.checkersgame.domain.repository.IGameRepository
 import com.lmar.checkersgame.domain.util.requirePlayerIds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class MovePieceUseCase(
     private val repository: IGameRepository,
@@ -38,7 +39,7 @@ class MovePieceUseCase(
         val isCrowning = shouldBeKing(piece, to.first, player1Id, player2Id)
         val rowDiff = to.first - from.first
         val colDiff = to.second - from.second
-        val jumped = kotlin.math.abs(rowDiff) == 2 && kotlin.math.abs(colDiff) == 2
+        val jumped = abs(rowDiff) == 2 && abs(colDiff) == 2
 
         val updatedScores = game.scores.toMutableMap()
         val currentScore = updatedScores[userId] ?: 0
