@@ -1,4 +1,4 @@
-package com.lmar.checkersgame.domain.usecase.single_game
+package com.lmar.checkersgame.domain.usecase
 
 import kotlinx.coroutines.delay
 import javax.inject.Inject

@@ -39,11 +39,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
+import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
 import com.lmar.checkersgame.presentation.common.components.FormCheckbox
 import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
 import com.lmar.checkersgame.presentation.common.components.FormTextField
+import com.lmar.checkersgame.presentation.common.components.GradientButton
 import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import com.lmar.checkersgame.presentation.common.components.ShadowText
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
@@ -114,7 +116,7 @@ fun SignUpScreen(
                         fontFamily = MaterialTheme.typography.displayLarge.fontFamily!!,
                         fontSize = 32.sp,
                         textAlign = TextAlign.Start,
-                        textColor = MaterialTheme.colorScheme.primary,
+                        textColor = MaterialTheme.colorScheme.onPrimary,
                         shadowColor = MaterialTheme.colorScheme.primary
                     )
 
@@ -171,16 +173,15 @@ fun SignUpScreen(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-                FormCheckbox(value = stringResource(R.string.terms_and_conditions))
+                FormCheckbox(text = stringResource(R.string.terms_and_conditions))
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
+                GradientButton(
+                    text = "Registrarse",
                     onClick = { onEvent(AuthEvent.SignUp) },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Registrarse")
-                }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -190,7 +191,7 @@ fun SignUpScreen(
                     modifier = Modifier.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("¿Ya tienes una cuenta? ", color = Color.Gray)
+                    Text("¿Ya tienes una cuenta? ", color = MaterialTheme.colorScheme.onPrimary)
                     Text(
                         text = "Login",
                         fontWeight = FontWeight.Bold,
@@ -212,5 +213,5 @@ fun SignUpScreen(
 @Preview(showBackground = true)
 @Composable
 private fun SignUpScreenPreview() {
-    SignUpScreen()
+    CheckersGameTheme { SignUpScreen() }
 }

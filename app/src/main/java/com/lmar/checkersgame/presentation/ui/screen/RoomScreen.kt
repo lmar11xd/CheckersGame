@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,7 +36,8 @@ import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
-import com.lmar.checkersgame.presentation.common.components.GlowingCard
+import com.lmar.checkersgame.presentation.common.components.GradientButton
+import com.lmar.checkersgame.presentation.common.components.GradientCard
 import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.components.RoomTextField
 import com.lmar.checkersgame.presentation.ui.event.RoomEvent
@@ -47,8 +45,10 @@ import com.lmar.checkersgame.presentation.ui.state.RoomState
 import com.lmar.checkersgame.presentation.viewmodel.RoomViewModel
 
 @Composable
-fun RoomScreenContainer(navController: NavHostController) {
-    val roomViewModel: RoomViewModel = hiltViewModel()
+fun RoomScreenContainer(
+    navController: NavHostController,
+    roomViewModel: RoomViewModel = hiltViewModel()
+) {
     val roomState by roomViewModel.roomState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -94,7 +94,6 @@ private fun RoomScreen(
                 state = rememberTopAppBarState()
             )
 
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -103,10 +102,7 @@ private fun RoomScreen(
             ) {
                 Spacer(modifier = Modifier.size(100.dp))
 
-                GlowingCard(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    glowingColor = MaterialTheme.colorScheme.tertiary,
-                    glowingRadius = 30.dp,
+                GradientCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 30.dp)
@@ -121,16 +117,17 @@ private fun RoomScreen(
                             "Unirse a Partida",
                             fontWeight = FontWeight.Bold,
                             fontFamily = MaterialTheme.typography.displayMedium.fontFamily,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.align(Alignment.Start)
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.size(10.dp))
 
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RoomTextField(
                                 value = roomState.roomCode,
@@ -140,27 +137,20 @@ private fun RoomScreen(
                                 modifier = Modifier.weight(1f)
                             )
 
-                            Button(
+                            GradientButton(
+                                "Ir",
                                 onClick = {
                                     onEvent(RoomEvent.JoinRoom)
-                                },
-                                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.width(60.dp)
-                            ) {
-                                Text("Ir")
-                            }
+                                }
+                            )
                         }
                     }
                 }
 
-                GlowingCard(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    glowingColor = MaterialTheme.colorScheme.primary,
-                    glowingRadius = 30.dp,
+                GradientCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 30.dp)
+                        .padding(20.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -172,18 +162,18 @@ private fun RoomScreen(
                             "Crear Partida",
                             fontWeight = FontWeight.Bold,
                             fontFamily = MaterialTheme.typography.displayMedium.fontFamily,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.Start)
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.size(10.dp))
 
-                        Button(
-                            onClick = { onEvent(RoomEvent.CreateRoom) },
-                            shape = RoundedCornerShape(10.dp),
-                        ) {
-                            Text("Jugar")
-                        }
+                        GradientButton(
+                            "Jugar",
+                            onClick = {
+                                onEvent(RoomEvent.CreateRoom)
+                            }
+                        )
                     }
                 }
             }

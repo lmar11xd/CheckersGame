@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,8 +25,8 @@ private val AppTextInputIconSize = 12.dp
 private val AppTextInputColors: TextFieldColors
     @Composable
     get() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
         cursorColor = MaterialTheme.colorScheme.tertiary,
         focusedLabelColor = MaterialTheme.colorScheme.tertiary,
         unfocusedLabelColor = MaterialTheme.colorScheme.outline,
@@ -66,7 +67,7 @@ fun RoomTextField(
         colors = AppTextInputColors,
         value = value,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        textStyle = TextStyle(fontSize = 12.sp),
+        textStyle = TextStyle(fontSize = 14.sp),
         onValueChange = onValueChange,
         enabled = enabled,
         label = {

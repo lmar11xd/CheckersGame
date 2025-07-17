@@ -6,8 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.lmar.checkersgame.data.sound.SoundPlayerWrapper
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.enum.RoomStatusEnum
-import com.lmar.checkersgame.domain.logic.Position
-import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.model.Player
 import com.lmar.checkersgame.domain.model.Room
 import com.lmar.checkersgame.domain.model.getFirstName
@@ -16,14 +14,20 @@ import com.lmar.checkersgame.domain.repository.IGameRepository
 import com.lmar.checkersgame.domain.repository.IRoomRepository
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
+import com.lmar.checkersgame.domain.usecase.StartGameTimerUseCase
+import com.lmar.checkersgame.domain.usecase.StopGameTimerUseCase
 import com.lmar.checkersgame.domain.usecase.game.AbortGameUseCase
 import com.lmar.checkersgame.domain.usecase.game.EndGameUseCase
 import com.lmar.checkersgame.domain.usecase.game.MovePieceUseCase
+import com.lmar.checkersgame.presentation.common.event.UiEvent
+import com.lmar.checkersgame.presentation.ui.event.GameEvent
+import com.lmar.checkersgame.presentation.ui.state.GameState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,26 +38,19 @@ class GameViewModel @Inject constructor(
     private val roomRepository: IRoomRepository,
     private val repository: IGameRepository,
     private val soundPlayer: SoundPlayerWrapper,
+    private val startTimer: StartGameTimerUseCase,
+    private val stopTimer: StopGameTimerUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _gameState = MutableStateFlow<Game?>(null)
-    val gameState: StateFlow<Game?> = _gameState
+    private val _gameState = MutableStateFlow<GameState>(GameState())
+    val gameState: StateFlow<GameState> = _gameState
 
     private val _roomState = MutableStateFlow<Room?>(null)
     val roomState: StateFlow<Room?> = _roomState
 
-    private val _gameTime = MutableStateFlow(0) // en segundos
-    val gameTime: StateFlow<Int> = _gameTime
-
-    private val _rematchRequested = MutableStateFlow(false)
-    val rematchRequested: StateFlow<Boolean> = _rematchRequested
-
-    private val _selectedCell = MutableStateFlow<Position?>(null)
-    val selectedCell: StateFlow<Position?> = _selectedCell
-
-    private val _scores = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val scores: StateFlow<Map<String, Int>> = _scores
+    private val _eventFlow = MutableSharedFlow<UiEvent>()
+    val eventFlow = _eventFlow.asSharedFlow()
 
     var userId: String = ""
     var roomId: String = ""
@@ -69,6 +66,32 @@ class GameViewModel @Inject constructor(
         savedStateHandle.get<String>("roomId")?.let { rid ->
             roomId = rid
             initializeGame()
+        }
+    }
+
+    fun onEvent(event: GameEvent) {
+        when (event) {
+            is GameEvent.CellClicked -> {
+                onCellClick(event.row, event.col)
+            }
+
+            GameEvent.Rematch -> {
+                requestRematch()
+            }
+
+            GameEvent.ToBack -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToBack)
+                }
+            }
+
+            GameEvent.AbortGame -> {
+                abortGame()
+            }
+
+            GameEvent.LeaveRoom -> {
+                leaveRoom()
+            }
         }
     }
 
@@ -109,8 +132,7 @@ class GameViewModel @Inject constructor(
             )
 
             repository.listenToGame(gameId) { game ->
-                _gameState.value = game
-                _scores.value = game.scores
+                _gameState.value = _gameState.value.copy(game = game, scores = game.scores)
                 when (game.status) {
                     GameStatusEnum.PLAYING -> startGameTimer()
                     GameStatusEnum.FINISHED, GameStatusEnum.ABORTED -> stopGameTimer()
@@ -120,37 +142,42 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    fun startGameTimer() {
+    private fun startGameTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (true) {
-                delay(1000)
-                _gameTime.value += 1
-            }
+            startTimer(
+                updateTimer = {
+                    _gameState.value = _gameState.value.copy(
+                        game = _gameState.value.game.copy(gameTime = it)
+                    )
+                },
+                shouldContinue = { true }
+            )
         }
     }
 
-    fun stopGameTimer() {
-        timerJob?.cancel()
+    private fun stopGameTimer() {
+        stopTimer { timerJob?.cancel() }
     }
 
     fun onCellClick(row: Int, col: Int) {
-        val currentGame = _gameState.value ?: return
-
-        val current = _selectedCell.value
+        val currentGame = _gameState.value.game
+        val current = _gameState.value.selectedCell
         val pos = row to col
         val piece = currentGame.board[row][col]
 
         if (piece.isNotEmpty() && piece.playerId == userId && currentGame.turn == userId) {
-            _selectedCell.value = pos
+            _gameState.value = _gameState.value.copy(selectedCell = pos)
         } else if (current != null && current != pos) {
             movePieceUseCase.execute(
                 currentGame,
                 current,
                 pos,
                 onUpdate = {
-                    _gameState.value = it
-                    _scores.value = it.scores
+                    _gameState.value = _gameState.value.copy(game = it, scores = it.scores)
+                },
+                updateSelected = {
+                    _gameState.value = _gameState.value.copy(selectedCell = it)
                 },
                 onGameEnd = { winnerId ->
                     endGameUseCase.execute(
@@ -160,41 +187,42 @@ class GameViewModel @Inject constructor(
                 }
             )
         } else {
-            _selectedCell.value = null
+            _gameState.value = _gameState.value.copy(selectedCell = null)
         }
     }
 
     fun resetGame() {
-        val currentGame = _gameState.value ?: return
+        val currentGame = _gameState.value.game
         val player1 = currentGame.player1 ?: return
         val player2 = currentGame.player2 ?: return
 
-        _selectedCell.value = null
+        _gameState.value = _gameState.value.copy(selectedCell = null)
 
         viewModelScope.launch {
             val newGameId = repository.createGame(player1, player2, roomId)
             gameId = newGameId
             repository.clearRematchRequests(newGameId)
             repository.listenToGame(newGameId) {
-                _gameState.value = it
-                _scores.value = it.scores
+                _gameState.value = _gameState.value.copy(game = it, scores = it.scores)
             }
         }
     }
 
     fun abortGame() {
-        val currentGame = _gameState.value ?: return
+        val currentGame = _gameState.value.game
         abortGameUseCase.execute(currentGame, userId)
+        onEvent(GameEvent.ToBack)
     }
 
     fun leaveRoom() {
         viewModelScope.launch {
             roomRepository.setRoomStatus(roomId, RoomStatusEnum.CLOSED)
+            onEvent(GameEvent.ToBack)
         }
     }
 
     fun requestRematch() {
-        _rematchRequested.value = true
+        _gameState.value = _gameState.value.copy(rematchRequested = true)
 
         viewModelScope.launch {
             repository.requestRematch(gameId, userId)

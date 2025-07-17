@@ -1,25 +1,14 @@
 package com.lmar.checkersgame.presentation.common.components
 
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,14 +18,13 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.core.ui.theme.Shapes
 
 @Composable
@@ -49,7 +37,9 @@ fun NormalTextComponent(
 ) {
     Text(
         text = value,
-        modifier = modifier.fillMaxWidth().heightIn(),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(),
         style = TextStyle(
             fontSize = fontSize,
             fontWeight = FontWeight.Normal,
@@ -70,7 +60,9 @@ fun HeadingTextComponent(
 ) {
     Text(
         text = value,
-        modifier = modifier.fillMaxWidth().heightIn(),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(),
         style = TextStyle(
             fontSize = fontSize,
             fontWeight = FontWeight.Bold,
@@ -83,135 +75,173 @@ fun HeadingTextComponent(
 
 @Composable
 fun FormTextField(
-    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    icon: ImageVector
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Next
 ) {
     OutlinedTextField(
         value = value,
+        onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
             .clip(Shapes.small)
-            .padding(start = 4.dp, end = 4.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            cursorColor = MaterialTheme.colorScheme.primary,
-            focusedTextColor = MaterialTheme.colorScheme.primary,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+            .padding(horizontal = 4.dp),
         label = { Text(label) },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        onValueChange = onValueChange,
-        leadingIcon = {
-            Icon(imageVector = icon, contentDescription = "IconForm")
-        },
+        keyboardOptions = KeyboardOptions(imeAction = imeAction),
+        leadingIcon = { Icon(icon, contentDescription = "IconForm") },
         singleLine = true,
-        maxLines = 1
+        maxLines = 1,
+        colors = textFieldColors()
     )
 }
 
 @Composable
 fun FormPasswordTextField(
-    modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    icon: ImageVector
+    icon: ImageVector,
+    modifier: Modifier = Modifier
 ) {
-    val localFocusManager = LocalFocusManager.current
-
-    val passVisible = remember {
-        mutableStateOf(false)
-    }
+    val focusManager = LocalFocusManager.current
+    var isPasswordVisible by remember { mutableStateOf(false) }
 
     OutlinedTextField(
         value = value,
+        onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
             .clip(Shapes.small)
-            .padding(start = 4.dp, end = 4.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            cursorColor = MaterialTheme.colorScheme.primary,
-            focusedTextColor = MaterialTheme.colorScheme.primary,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+            .padding(horizontal = 4.dp),
         label = { Text(label) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-        keyboardActions = KeyboardActions {
-            localFocusManager.clearFocus()
-        },
-        onValueChange = onValueChange,
-        leadingIcon = {
-            Icon(imageVector = icon, contentDescription = "IconForm")
-        },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        leadingIcon = { Icon(icon, contentDescription = "IconForm") },
         trailingIcon = {
-            val iconImage = if(passVisible.value) {
-                Icons.Filled.Visibility
-            } else {
-                Icons.Filled.VisibilityOff
-            }
-
-            val description = if(passVisible.value) {
-                "Ocultar Contraseña"
-            } else {
-                "Mostrar Contraseña"
-            }
-
-            IconButton(onClick = { passVisible.value = !passVisible.value }) {
-                Icon(imageVector = iconImage, contentDescription = description)
+            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                Icon(
+                    imageVector = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                    contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                )
             }
         },
-        visualTransformation = if(passVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
+        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         singleLine = true,
-        maxLines = 1
+        maxLines = 1,
+        colors = textFieldColors()
     )
 }
 
 @Composable
-fun FormCheckbox(value: String) {
+fun FormCheckbox(
+    text: String,
+    modifier: Modifier = Modifier,
+    checked: Boolean = false,
+    onCheckedChange: ((Boolean) -> Unit)? = null
+) {
+    var isChecked by remember { mutableStateOf(checked) }
+
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .heightIn(56.dp)
-            .padding(16.dp),
+            .heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val checkedState = remember {
-            mutableStateOf(false)
-        }
-
         Checkbox(
-            checked = checkedState.value,
-            onCheckedChange = { checkedState.value = !checkedState.value }
-        )
+            checked = isChecked,
+            onCheckedChange = {
+                isChecked = it
+                onCheckedChange?.invoke(it)
+            },
+            colors = CheckboxDefaults.colors(
+                disabledCheckedColor = MaterialTheme.colorScheme.outline,
+                disabledUncheckedColor = MaterialTheme.colorScheme.outline,
 
-        NormalTextComponent(value, fontSize = 16.sp, textAlign = TextAlign.Start)
+                checkedColor = MaterialTheme.colorScheme.onPrimary,
+                uncheckedColor = MaterialTheme.colorScheme.outline,
+
+                checkmarkColor = MaterialTheme.colorScheme.primary
+            )
+        )
+        NormalTextComponent(
+            value = text,
+            fontSize = 16.sp,
+            textColor = MaterialTheme.colorScheme.outline,
+            textAlign = TextAlign.Start,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
 
 @Composable
-fun DividerTextComponent() {
+fun DividerTextComponent(modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         HorizontalDivider(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.weight(1f),
             color = Color.Gray,
             thickness = 1.dp
         )
-        Text("o", modifier = Modifier.padding(8.dp), fontSize = 18.sp, color = Color.Gray)
+        Text(
+            "o",
+            modifier = Modifier.padding(horizontal = 8.dp),
+            fontSize = 18.sp,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
         HorizontalDivider(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.weight(1f),
             color = Color.Gray,
             thickness = 1.dp
         )
+    }
+}
+
+@Composable
+private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+    unfocusedLabelColor = MaterialTheme.colorScheme.outline,
+    unfocusedTextColor = MaterialTheme.colorScheme.outline,
+    unfocusedLeadingIconColor = MaterialTheme.colorScheme.outline,
+    unfocusedTrailingIconColor = MaterialTheme.colorScheme.outline,
+    unfocusedContainerColor = Color.Transparent,
+
+    disabledBorderColor = MaterialTheme.colorScheme.outline,
+    disabledLabelColor = MaterialTheme.colorScheme.outline,
+    disabledTextColor = MaterialTheme.colorScheme.outline,
+    disabledLeadingIconColor = MaterialTheme.colorScheme.outline,
+    disabledTrailingIconColor = MaterialTheme.colorScheme.outline,
+    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+
+    focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+    focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+    focusedTrailingIconColor = MaterialTheme.colorScheme.onPrimary,
+    focusedContainerColor = Color.Transparent,
+
+    cursorColor = MaterialTheme.colorScheme.onPrimary
+)
+
+@Preview(showBackground = true)
+@Composable
+private fun FormsPreview() {
+    CheckersGameTheme {
+        Column(
+            modifier = Modifier.fillMaxSize().background(color = Color.Black).padding(16.dp),
+            //verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            FormTextField("Data", {}, "Label", Icons.Default.Visibility)
+            FormPasswordTextField("Data", {}, "Label", Icons.Default.Visibility)
+            FormCheckbox("Data", checked = true, onCheckedChange = {})
+        }
     }
 }

@@ -17,6 +17,7 @@ import coil.compose.AsyncImage
 fun ImageCircle(
     imageUrl: String,
     modifier: Modifier = Modifier,
+    borderWidth: Int = 5,
     contentDescription: String = "Circular Image"
 ) {
     AsyncImage(
@@ -25,7 +26,7 @@ fun ImageCircle(
         modifier = modifier
             .size(100.dp) // Ajusta el tamaño de la imagen
             .clip(CircleShape) // Hace que la imagen sea circular
-            .border(5.dp, MaterialTheme.colorScheme.tertiary, CircleShape), // Borde opcional
+            .border(borderWidth.dp, MaterialTheme.colorScheme.tertiary, CircleShape), // Borde opcional
         contentScale = ContentScale.Crop // Ajusta la imagen para que llene el círculo
     )
 }
@@ -34,6 +35,7 @@ fun ImageCircle(
 fun ImageCircle(
     painter: Painter,
     modifier: Modifier = Modifier,
+    borderWidth: Int = 5,
     contentDescription: String = "Circular Image"
 ) {
     Image(
@@ -42,7 +44,7 @@ fun ImageCircle(
         modifier = modifier
             .size(100.dp) // Ajusta el tamaño de la imagen
             .clip(CircleShape) // Hace que la imagen sea circular
-            .border(5.dp, MaterialTheme.colorScheme.tertiary, CircleShape), // Borde opcional
+            .border(borderWidth.dp, MaterialTheme.colorScheme.tertiary, CircleShape), // Borde opcional
         contentScale = ContentScale.Crop // Ajusta la imagen para que llene el círculo
     )
 }

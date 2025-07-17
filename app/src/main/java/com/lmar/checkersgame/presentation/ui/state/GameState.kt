@@ -8,4 +8,6 @@ data class GameState (
     val game: Game = Game(),
     val gameLevel: Difficulty = Difficulty.EASY,
     val selectedCell: Position? = null,
+    val scores: Map<String, Int> = emptyMap(),
+    val rematchRequested: Boolean = false
 )

@@ -117,6 +117,21 @@ class AuthViewModel @Inject constructor(
         _authState.value = _authState.value.copy(
             isAuthenticated = isAuthenticated
         )
+
+        if (isAuthenticated) {
+            viewModelScope.launch {
+                val authUser = repository.getCurrentUser()
+
+                val user = userRepository.getUserById(authUser?.uid ?: "") ?: User()
+                _authState.value = _authState.value.copy(
+                    user = user
+                )
+            }
+        } else {
+            _authState.value = _authState.value.copy(
+                user = User()
+            )
+        }
     }
 
     fun login() {

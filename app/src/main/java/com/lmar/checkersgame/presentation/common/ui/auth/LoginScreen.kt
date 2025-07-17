@@ -1,5 +1,9 @@
 package com.lmar.checkersgame.presentation.common.ui.auth
 
+import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
+import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
+import com.lmar.checkersgame.presentation.common.components.FormTextField
+import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,12 +42,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
+import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
-import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
-import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
-import com.lmar.checkersgame.presentation.common.components.FormTextField
+import com.lmar.checkersgame.presentation.common.components.GradientButton
 import com.lmar.checkersgame.presentation.common.components.Loading
-import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import com.lmar.checkersgame.presentation.common.components.ShadowText
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.state.AuthState
@@ -113,13 +116,14 @@ private fun LoginScreen(
                         fontFamily = MaterialTheme.typography.displayLarge.fontFamily!!,
                         fontSize = 32.sp,
                         textAlign = TextAlign.Start,
-                        textColor = MaterialTheme.colorScheme.primary,
+                        textColor = MaterialTheme.colorScheme.onPrimary,
                         shadowColor = MaterialTheme.colorScheme.primary
                     )
 
                     NormalTextComponent(
                         "¡Inicia sesión para continuar!",
                         textAlign = TextAlign.Start,
+                        textColor = MaterialTheme.colorScheme.tertiary,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(horizontal = 5.dp)
                     )
@@ -144,13 +148,12 @@ private fun LoginScreen(
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
+                
+                GradientButton(
+                    text = "Iniciar Sesión",
                     onClick = { onEvent(AuthEvent.Login) },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Iniciar Sesión")
-                }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -160,7 +163,7 @@ private fun LoginScreen(
                     modifier = Modifier.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("¿No tienes una cuenta? ", color = Color.Gray)
+                    Text("¿No tienes una cuenta? ", color = MaterialTheme.colorScheme.onPrimary)
                     Text(
                         text = "Regístrate",
                         fontWeight = FontWeight.Bold,
@@ -196,5 +199,5 @@ private fun LoginScreen(
 @Preview(showBackground = true)
 @Composable
 private fun LoginScreenPreview() {
-    LoginScreen(AuthState())
+    CheckersGameTheme { LoginScreen(AuthState()) }
 }

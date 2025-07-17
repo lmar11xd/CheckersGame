@@ -7,14 +7,12 @@ import com.lmar.checkersgame.domain.ai.AIPlayer
 import com.lmar.checkersgame.domain.ai.Difficulty
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.logic.Position
-import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.usecase.single_game.InitializeSingleGameUseCase
 import com.lmar.checkersgame.domain.usecase.single_game.MovePieceUseCase
 import com.lmar.checkersgame.domain.usecase.single_game.ResetSingleGameUseCase
-import com.lmar.checkersgame.domain.usecase.single_game.StartGameTimerUseCase
-import com.lmar.checkersgame.domain.usecase.single_game.StopGameTimerUseCase
+import com.lmar.checkersgame.domain.usecase.StartGameTimerUseCase
+import com.lmar.checkersgame.domain.usecase.StopGameTimerUseCase
 import com.lmar.checkersgame.presentation.common.event.UiEvent
-import com.lmar.checkersgame.presentation.common.state.ProfileState
 import com.lmar.checkersgame.presentation.ui.event.GameEvent
 import com.lmar.checkersgame.presentation.ui.state.GameState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -76,6 +74,12 @@ class SingleGameViewModel @Inject constructor(
                 viewModelScope.launch {
                     _eventFlow.emit(UiEvent.ToBack)
                 }
+            }
+
+            GameEvent.AbortGame -> {
+            }
+
+            GameEvent.LeaveRoom -> {
             }
         }
     }

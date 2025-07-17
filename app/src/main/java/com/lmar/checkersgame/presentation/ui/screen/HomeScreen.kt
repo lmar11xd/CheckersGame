@@ -2,7 +2,6 @@ package com.lmar.checkersgame.presentation.ui.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,23 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,7 +33,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -54,10 +45,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
+import com.lmar.checkersgame.core.utils.Constants.PHOTO_ICON_SIZE
+import com.lmar.checkersgame.core.utils.Constants.PHOTO_SIZE
 import com.lmar.checkersgame.domain.ai.Difficulty
-import com.lmar.checkersgame.presentation.common.components.GlowingCard
+import com.lmar.checkersgame.presentation.common.components.AppBar
+import com.lmar.checkersgame.presentation.common.components.GradientButton
+import com.lmar.checkersgame.presentation.common.components.GradientCircleImage
+import com.lmar.checkersgame.presentation.common.components.ImageCircle
 import com.lmar.checkersgame.presentation.common.components.ShadowText
-import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.state.AuthState
 import com.lmar.checkersgame.presentation.common.viewmodel.auth.AuthViewModel
 import com.lmar.checkersgame.presentation.navigation.handleUiEvents
@@ -113,100 +108,95 @@ private fun HomeScreen(
         )
 
         Column {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Text("")
-                },
+            AppBar(
+                withBackButton = false,
                 actions = {
-                    IconButton(
-                        onClick = { onEvent(HomeEvent.ToProfile) },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Configuraciones",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    if (authState.isAuthenticated) {
+                        IconButton(
+                            onClick = { onEvent(HomeEvent.ToProfile) }
+                        ) {
+                            if (authState.user.imageUrl.isNotEmpty()) {
+                                ImageCircle(
+                                    borderWidth = 1,
+                                    imageUrl = authState.user.imageUrl,
+                                    modifier = Modifier.size(PHOTO_ICON_SIZE)
+                                )
+                            } else {
+                                ImageCircle(
+                                    borderWidth = 1,
+                                    painter = painterResource(R.drawable.default_avatar),
+                                    modifier = Modifier.size(PHOTO_ICON_SIZE)
+                                )
+                            }
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { onEvent(HomeEvent.ToProfile) },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Configuraciones",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
-                },
-                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
-                    rememberTopAppBarState()
-                )
+                }
             )
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                //verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 ShadowText(
                     text = stringResource(R.string.app_name),
                     fontFamily = MaterialTheme.typography.displayLarge.fontFamily!!,
                     fontSize = 32.sp,
-                    textColor = MaterialTheme.colorScheme.primary,
+                    textColor = MaterialTheme.colorScheme.onPrimary,
                     shadowColor = MaterialTheme.colorScheme.primary
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                GlowingCard(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .padding(5.dp),
-                    glowingColor = MaterialTheme.colorScheme.primary,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    cornerRadius = Int.MAX_VALUE.dp
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.checkers),
-                        contentDescription = "Logo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .border(5.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    )
-                }
+                GradientCircleImage(
+                    image = painterResource(id = R.drawable.checkers),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    imageSize = PHOTO_SIZE,
+                    strokeWidth = 6.dp
+                )
 
+                Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Button(
-                    onClick = {
-                        showBottomSheet = true
-                    },
-                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
-                    modifier = Modifier.width(200.dp)
-                ) {
-                    Text("Un Jugador")
-                }
+                GradientButton(
+                    text = "Un Jugador",
+                    onClick = { showBottomSheet = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.size(4.dp))
 
                 if (authState.isAuthenticated) {
-                    Button(
+                    GradientButton(
+                        text = "Multijugador",
                         onClick = { onEvent(HomeEvent.ToRoom) },
-                        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.width(200.dp)
-                    ) {
-                        Text("Multijugador")
-                    }
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(modifier = Modifier.size(4.dp))
 
-                    Button(
+                    GradientButton(
+                        text = "Ranking",
                         onClick = { onEvent(HomeEvent.ToRanking) },
-                        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
-                        modifier = Modifier.width(200.dp)
-                    ) {
-                        Text("Ranking")
-                    }
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(modifier = Modifier.size(4.dp))
                 }
+
+                Spacer(modifier = Modifier.size(32.dp))
             }
 
         }
@@ -290,6 +280,6 @@ fun BottomSheetItem(
 @Composable
 fun HomeScreenPreview() {
     CheckersGameTheme {
-        HomeScreen(AuthState())
+        HomeScreen(AuthState(isAuthenticated = true))
     }
 }

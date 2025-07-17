@@ -30,12 +30,7 @@ class EndGameUseCase(
             repository.setFinalScores(gameId, game.scores)
 
             // Actualizar score del jugador en su perfil
-            val pointsEarned = Constants.POINTS_MATCH_WIN
-            val winnerUser = userRepository.getUserById(winnerId)
-            if (winnerUser != null) {
-                val updatedScore = winnerUser.score + pointsEarned
-                userRepository.updateUserScore(winnerId, updatedScore)
-            }
+            userRepository.updateUserScore(winnerId, Constants.POINTS_MATCH_WIN)
 
             // Escuchar revancha
             repository.listenToRematchRequests(gameId, player1Id, player2Id) {

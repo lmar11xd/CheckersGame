@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.presentation.common.components.AppBar
+import com.lmar.checkersgame.presentation.common.components.GradientCard
 import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.event.RankingEvent
 import com.lmar.checkersgame.presentation.viewmodel.RankingViewModel
@@ -55,7 +55,8 @@ fun RankingScreenContainer(
     RankingScreen(
         topPlayers,
         onEvent = { event ->
-        viewModel.onEvent(event)}
+            viewModel.onEvent(event)
+        }
     )
 }
 
@@ -91,10 +92,14 @@ private fun RankingScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(horizontal = 32.dp, vertical = 16.dp)
             ) {
                 itemsIndexed(topPlayers) { index, player ->
-                    RankingItem(index + 1, player)
+                    RankingItem(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        position = index + 1,
+                        user = player
+                    )
                 }
             }
         }
@@ -102,22 +107,14 @@ private fun RankingScreen(
 }
 
 @Composable
-fun RankingItem(position: Int, user: User) {
-    val backgroundColor = if (position % 2 == 0) Color.LightGray else Color.Gray
-    var textColor = if (position % 2 == 0) Color.Gray else Color.White
-
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-            .background(backgroundColor, shape = MaterialTheme.shapes.small)
-    ) {
+fun RankingItem(modifier: Modifier = Modifier, position: Int, user: User) {
+    GradientCard(modifier) {
         Row(
-            modifier = Modifier
-                .padding(10.dp)
+            modifier = Modifier.padding(10.dp)
         ) {
-            Text("$position. ", color = textColor)
-            Text(user.names, modifier = Modifier.weight(1f), color = textColor)
-            Text("${user.score} pts", color = textColor, fontWeight = FontWeight.Bold)
+            Text("$position. ", color = Color.White)
+            Text(user.names, modifier = Modifier.weight(1f), color = Color.White)
+            Text("${user.score} pts", color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }

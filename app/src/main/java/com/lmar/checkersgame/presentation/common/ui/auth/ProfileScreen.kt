@@ -29,7 +29,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -50,10 +49,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import com.lmar.checkersgame.R
+import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.core.utils.Constants.PHOTO_SIZE
+import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.common.components.FormTextField
 import com.lmar.checkersgame.presentation.common.components.GlowingCard
+import com.lmar.checkersgame.presentation.common.components.GradientButton
 import com.lmar.checkersgame.presentation.common.components.HeadingTextComponent
 import com.lmar.checkersgame.presentation.common.components.ImageCircle
 import com.lmar.checkersgame.presentation.common.components.Loading
@@ -193,12 +195,18 @@ private fun ProfileScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 HeadingTextComponent(
                                     value = profileState.user.names,
-                                    textColor = MaterialTheme.colorScheme.primary,
+                                    textColor = MaterialTheme.colorScheme.onPrimary,
                                     fontSize = 16.sp
                                 )
 
                                 NormalTextComponent(
                                     value = profileState.user.email, fontSize = 14.sp
+                                )
+
+                                HeadingTextComponent(
+                                    value = "${profileState.user.score} pts",
+                                    textColor = MaterialTheme.colorScheme.primary,
+                                    fontSize = 16.sp
                                 )
                             }
 
@@ -303,34 +311,29 @@ private fun ProfileScreen(
                     Spacer(modifier = Modifier.size(4.dp))
 
                     if (profileState.isAuthenticated) {
-                        OutlinedButton(
+                        GradientButton(
+                            text = "Cerrar Sesión",
                             onClick = { onEvent(ProfileEvent.SignOut) },
-                            modifier = Modifier.width(200.dp)
-                        ) {
-                            Text("Cerrar Sesión")
-                        }
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     } else {
-                        Button(
+                        GradientButton(
+                            text = "Iniciar Sesión",
                             onClick = { onEvent(ProfileEvent.ToLogin) },
-                            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiary),
-                            modifier = Modifier.width(200.dp)
-                        ) {
-                            Text("Iniciar Sesión")
-                        }
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Spacer(modifier = Modifier.size(4.dp))
 
-                        Button(
+                        GradientButton(
+                            text = "Registrarse",
                             onClick = { onEvent(ProfileEvent.ToSignUp) },
-                            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.width(200.dp)
-                        ) {
-                            Text("Registrarse")
-                        }
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.size(4.dp))
+                Spacer(modifier = Modifier.size(32.dp))
             }
         }
     }
@@ -344,5 +347,12 @@ private fun ProfileScreen(
 @Preview(showBackground = true)
 @Composable
 private fun ProfileScreenPreview() {
-    ProfileScreen(ProfileState())
+    CheckersGameTheme {
+        ProfileScreen(
+            ProfileState(
+                isAuthenticated = true,
+                user = User(id = "01", names = "Test 01", email = "test01@gmail.com", score = 100)
+            )
+        )
+    }
 }

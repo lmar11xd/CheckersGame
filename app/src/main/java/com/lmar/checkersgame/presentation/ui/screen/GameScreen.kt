@@ -3,36 +3,26 @@ package com.lmar.checkersgame.presentation.ui.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,66 +44,54 @@ import com.lmar.checkersgame.domain.logic.generateInitialBoard
 import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.model.Player
 import com.lmar.checkersgame.domain.model.Room
-import com.lmar.checkersgame.domain.model.isNotEmpty
 import com.lmar.checkersgame.presentation.common.components.AppBar
-import com.lmar.checkersgame.presentation.ui.components.Piece3D
-import com.lmar.checkersgame.presentation.ui.components.formatTime
+import com.lmar.checkersgame.presentation.navigation.handleUiEvents
+import com.lmar.checkersgame.presentation.ui.components.game.GameBoard
+import com.lmar.checkersgame.presentation.ui.components.game.GameHeaderInfo
+import com.lmar.checkersgame.presentation.ui.event.GameEvent
+import com.lmar.checkersgame.presentation.ui.state.GameState
 import com.lmar.checkersgame.presentation.viewmodel.GameViewModel
 
 @Composable
-fun GameScreenContainer(navController: NavHostController) {
-    val viewModel: GameViewModel = hiltViewModel()
+fun GameScreenContainer(
+    navController: NavHostController,
+    viewModel: GameViewModel = hiltViewModel()
+) {
     val gameState by viewModel.gameState.collectAsState()
     val roomState by viewModel.roomState.collectAsState()
-    val gameTime by viewModel.gameTime.collectAsState()
-    val scores by viewModel.scores.collectAsState()
-    val selectedCell by viewModel.selectedCell.collectAsState()
-    val rematchRequested by viewModel.rematchRequested.collectAsState()
     val userId = viewModel.userId
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        navController.handleUiEvents(
+            coroutineScope,
+            viewModel.eventFlow
+        )
+    }
 
     GameScreen(
         gameState = gameState,
         roomState = roomState,
-        gameTime = gameTime,
-        selectedCell = selectedCell,
-        userId = userId,
-        scores = scores,
-        onCellClick = { row, col -> viewModel.onCellClick(row, col) },
-        onRematch = { viewModel.requestRematch() },
-        rematchRequested = rematchRequested,
-        onAbortGame = {
-            viewModel.abortGame()
-            navController.popBackStack()
-        },
-        onLeaveRoom = {
-            viewModel.leaveRoom()
-            navController.popBackStack()
-        },
-        onExit = {
-            navController.popBackStack()
-        }
+        onEvent = { viewModel.onEvent(it) },
+        userId = userId
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GameScreen(
-    gameState: Game?,
+    gameState: GameState = GameState(),
     roomState: Room?,
-    gameTime: Int,
-    selectedCell: Pair<Int, Int>?,
-    userId: String,
-    scores: Map<String, Int>,
-    onCellClick: (Int, Int) -> Unit,
-    onRematch: () -> Unit,
-    rematchRequested: Boolean,
-    onAbortGame: () -> Unit,
-    onExit: () -> Unit,
-    onLeaveRoom: () -> Unit
+    onEvent: (GameEvent) -> Unit = {},
+    userId: String
 ) {
     var showExitDialog by remember { mutableStateOf(false) }
 
-    val isUserTurn = gameState?.turn == userId
+    val isUserTurn = gameState.game.turn == userId
+    val opponentName =
+        (if (gameState.game.player1?.id == userId) gameState.game.player2?.name
+        else gameState.game.player1?.name) ?: ""
 
     BackHandler {
         showExitDialog = true
@@ -145,136 +122,24 @@ private fun GameScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(16.dp)
             ) {
-                val oponentName =
-                    (if (gameState?.player1?.id == userId) gameState.player2?.name
-                    else gameState?.player1?.name) ?: ""
+                GameHeaderInfo(
+                    gameTime = gameState.game.gameTime,
+                    title = "Puntos",
+                    label = (gameState.scores[userId] ?: 0).toString(),
+                    isUserTurn = isUserTurn,
+                    opponentName = opponentName
+                )
 
-                // Info
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        modifier = Modifier.width(120.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            modifier = Modifier
-                                .size(18.dp)
-                                .padding(end = 4.dp),
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = "Tiempo",
-                            tint = Color.DarkGray
-                        )
-                        Text(formatTime(gameTime), color = Color.DarkGray, fontSize = 12.sp)
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .background(Color.LightGray, shape = CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        ) {
-                            Text(
-                                "Puntos",
-                                color = Color.DarkGray,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(end = 4.dp)
-                            )
-                            Text(
-                                "${scores[userId] ?: 0}",
-                                color = Color.DarkGray,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.width(120.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = if (isUserTurn) "Tu turno" else "Turno de $oponentName",
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.End,
-                            color = Color.DarkGray
-                        )
-                    }
-                }
-
-                // Tablero
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        .fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.border(4.dp, Color.Black)
-                    ) {
-                        for (row in 0 until 8) {
-                            Row(modifier = Modifier.weight(1f)) {
-                                for (col in 0 until 8) {
-                                    val piece = gameState?.board[row][col]
-                                    val isDark = (row + col) % 2 == 1
-                                    val isSelected = selectedCell == (row to col)
-
-                                    var borderColor = Color.Black
-                                    var borderWith = 1.dp
-                                    if (isSelected) {
-                                        borderColor = Color.Green
-                                        borderWith = 2.dp
-                                    }
-
-                                    var paddingTop = if (row == 0) 4.dp else 0.dp
-                                    var paddingBottom = if (row == 7) 4.dp else 0.dp
-                                    var paddingStart = if (col == 0) 4.dp else 0.dp
-                                    var paddingEnd = if (col == 7) 4.dp else 0.dp
-
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight()
-                                            .background(
-                                                when {
-                                                    isDark -> Color(0xFF4E342E)
-                                                    else -> Color(0xFFFFF8E1)
-                                                }
-                                            )
-                                            .padding(
-                                                start = paddingStart,
-                                                top = paddingTop,
-                                                bottom = paddingBottom,
-                                                end = paddingEnd
-                                            )
-                                            .border(borderWith, borderColor)
-                                            .clickable {
-                                                if (gameState?.status == GameStatusEnum.PLAYING) {
-                                                    onCellClick(row, col)
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (piece?.isNotEmpty() == true) {
-                                            Piece3D(
-                                                modifier = Modifier.size(36.dp),
-                                                baseColor = if (piece.playerId == userId) Color.Red else Color.Black,
-                                                isKing = piece.isKing
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                if(gameState.game.board.isNotEmpty()) {
+                    GameBoard(
+                        board = gameState.game.board,
+                        selectedCell = gameState.selectedCell,
+                        userId = userId,
+                        gameStatus = gameState.game.status,
+                        onCellClick = { row, col -> onEvent(GameEvent.CellClicked(row, col)) }
+                    )
                 }
 
                 Text(
@@ -285,7 +150,7 @@ private fun GameScreen(
                     modifier = Modifier.align(Alignment.End)
                 )
 
-                if (gameState?.status == GameStatusEnum.WAITING) {
+                if (gameState.game.status == GameStatusEnum.WAITING) {
                     AlertDialog(
                         onDismissRequest = {}, // Evita que se cierre tocando fuera
                         title = {
@@ -308,19 +173,19 @@ private fun GameScreen(
                             }
                         },
                         confirmButton = {
-                            TextButton(onClick = onLeaveRoom) {
+                            TextButton(onClick = { onEvent(GameEvent.LeaveRoom) }) {
                                 Text("Salir")
                             }
                         }
                     )
                 }
 
-                if (gameState?.status == GameStatusEnum.FINISHED) {
+                if (gameState.game.status == GameStatusEnum.FINISHED) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = {
                             Text(
-                                text = when (gameState.winner) {
+                                text = when (gameState.game.winner) {
                                     null -> "Empate"
                                     userId -> "¡Felicidades, ganaste!"
                                     else -> "Perdiste"
@@ -329,7 +194,7 @@ private fun GameScreen(
                             )
                         },
                         text = {
-                            if (rematchRequested) {
+                            if (gameState.rematchRequested) {
                                 Text("Revancha solicitada, esperando a que el oponente acepte.")
                             } else {
                                 Text("¿Qué deseas hacer?")
@@ -337,21 +202,21 @@ private fun GameScreen(
                         },
                         confirmButton = {
                             TextButton(
-                                onClick = onRematch,
-                                enabled = !rematchRequested
+                                onClick = { onEvent(GameEvent.Rematch) },
+                                enabled = !gameState.rematchRequested
                             ) {
                                 Text("Revancha")
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = onLeaveRoom) {
+                            TextButton(onClick = { onEvent(GameEvent.AbortGame) }) {
                                 Text("Salir")
                             }
                         }
                     )
                 }
 
-                if (gameState?.status == GameStatusEnum.ABORTED && gameState.winner == userId) {
+                if (gameState.game.status == GameStatusEnum.ABORTED && gameState.game.winner == userId) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = {
@@ -361,7 +226,7 @@ private fun GameScreen(
                             Text("Tu oponente abandonó la partida.")
                         },
                         confirmButton = {
-                            TextButton(onClick = onExit) {
+                            TextButton(onClick = { onEvent(GameEvent.ToBack) }) {
                                 Text("Salir")
                             }
                         }
@@ -386,7 +251,7 @@ private fun GameScreen(
                         confirmButton = {
                             TextButton(onClick = {
                                 showExitDialog = false
-                                onAbortGame()
+                                onEvent(GameEvent.AbortGame)
                             }) {
                                 Text("Salir")
                             }
@@ -417,23 +282,11 @@ private fun GameScreenPreview() {
         )
         val roomState = Room("0001", "908060", RoomStatusEnum.COMPLETED)
 
-        val myCallback: (Int, Int) -> Unit = { a, b ->
-            println("Suma: ${a + b}")
-        }
-
         GameScreen(
-            gameState,
-            roomState,
-            175,
-            Pair(0, 7),
-            "01",
-            mapOf("01" to 100, "02" to 200),
-            myCallback,
+            gameState = GameState(gameState),
+            roomState = roomState,
             {},
-            false,
-            {},
-            {},
-            {}
+            "01"
         )
     }
 }

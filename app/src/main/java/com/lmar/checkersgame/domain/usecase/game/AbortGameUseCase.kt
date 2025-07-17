@@ -24,17 +24,12 @@ class AbortGameUseCase(
         val opponentId = if (userId == player1Id) player2Id else player1Id
 
         scope.launch {
-            // Actualizar score del jugador en su perfil
-            val pointsEarned = Constants.POINTS_ABORTED_MATCH
-            val winnerUser = userRepository.getUserById(userId)
-            if (winnerUser != null) {
-                val updatedScore = winnerUser.score - pointsEarned // Restamos los puntos por salir del juego
-                userRepository.updateUserScore(userId, updatedScore)
-            }
-
             repository.setWinner(gameId, opponentId)
             repository.setGameStatus(gameId, GameStatusEnum.ABORTED)
             roomRepository.setRoomStatus(roomId, RoomStatusEnum.CLOSED)
+
+            // Actualizar score del jugador en su perfil
+            userRepository.updateUserScore(userId, Constants.POINTS_ABORTED_MATCH)
         }
     }
 }

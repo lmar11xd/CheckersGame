@@ -27,6 +27,7 @@ class MovePieceUseCase(
         from: Position,
         to: Position,
         onUpdate: (Game) -> Unit,
+        updateSelected: (Position?) -> Unit,
         onGameEnd: (String) -> Unit
     ) {
         val (player1Id, player2Id) = game.requirePlayerIds()
@@ -69,8 +70,11 @@ class MovePieceUseCase(
         onUpdate(updatedGame)
 
         if (jumped && canContinueJumping(newBoard, to, userId, player1Id, player2Id)) {
+            updateSelected(to)
             return
         }
+
+        updateSelected(null)
 
         val opponentId = if (userId == player1Id) player2Id else player1Id
 

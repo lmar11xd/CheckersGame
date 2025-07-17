@@ -1,5 +1,6 @@
 package com.lmar.checkersgame.presentation.common.components
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,8 +19,10 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBar(
-    title: String,
-    onBackAction: () -> Unit,
+    title: String = "",
+    withBackButton: Boolean = true,
+    onBackAction: () -> Unit = {},
+    actions: @Composable (RowScope.() -> Unit) = {},
     state: TopAppBarState = rememberTopAppBarState()
 ) {
     TopAppBar(
@@ -27,20 +30,21 @@ fun AppBar(
             containerColor = Color.Transparent,
             titleContentColor = MaterialTheme.colorScheme.primary
         ),
-        title = { Text(title, color = Color.LightGray, fontSize = 18.sp) },
+        title = { Text(title, color = MaterialTheme.colorScheme.onPrimary, fontSize = 18.sp) },
         navigationIcon = {
-            IconButton(
-                onClick = { onBackAction() },
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = Color.LightGray
-                )
+            if(withBackButton) {
+                IconButton(
+                    onClick = { onBackAction() },
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
         },
-        actions = {
-        },
+        actions = actions,
         scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(
             state
         )

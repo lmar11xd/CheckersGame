@@ -13,6 +13,8 @@ import com.lmar.checkersgame.domain.repository.common.IUserRepository
 import com.lmar.checkersgame.core.utils.Constants
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class FirebaseUserRepository @Inject constructor() : IUserRepository {
 
@@ -86,7 +88,22 @@ class FirebaseUserRepository @Inject constructor() : IUserRepository {
     }
 
     override suspend fun updateUserScore(userId: String, newScore: Int) {
-        database.child(userId).child("score").setValue(newScore)
+        val userRef = database.child(userId)
+
+        val currentScore = suspendCoroutine<Int> { cont ->
+            userRef.child("score").get()
+                .addOnSuccessListener { snapshot ->
+                    val score = snapshot.getValue(Int::class.java) ?: 0
+                    cont.resume(score)
+                }
+                .addOnFailureListener {
+                    cont.resume(0) // Asume 0 si falla
+                }
+        }
+
+        val updatedScore = currentScore + newScore
+
+        userRef.child("score").setValue(updatedScore)
     }
 
     override suspend fun getTopPlayers(limit: Int): List<User> {
