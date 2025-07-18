@@ -3,24 +3,20 @@ package com.lmar.checkersgame.data.repository
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.lmar.checkersgame.domain.repository.IGameRepository
 import com.lmar.checkersgame.domain.enum.GameStatusEnum
 import com.lmar.checkersgame.domain.logic.generateInitialBoard
 import com.lmar.checkersgame.domain.model.Game
 import com.lmar.checkersgame.domain.model.Piece
 import com.lmar.checkersgame.domain.model.Player
-import com.lmar.checkersgame.core.utils.Constants
+import com.lmar.checkersgame.domain.repository.IGameRepository
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.collections.get
 
-class FirebaseGameRepository @Inject constructor() : IGameRepository {
-
-    private val database: DatabaseReference = FirebaseDatabase.getInstance()
-        .getReference("${Constants.DATABASE_REFERENCE}/${Constants.GAMES_REFERENCE}")
+class FirebaseGameRepository @Inject constructor(
+    private val database: DatabaseReference
+) : IGameRepository {
 
     override fun listenToGame(gameId: String, onUpdate: (Game) -> Unit) {
         database.child(gameId).addValueEventListener(object : ValueEventListener {
@@ -33,11 +29,11 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
     }
 
     override suspend fun updateBoard(gameId: String, board: List<List<Piece>>) {
-        database.child(gameId).child("board").setValue(board)
+        database.child(gameId).child("board").setValue(board).await()
     }
 
     override suspend fun updateTurn(gameId: String, turn: String) {
-        database.child(gameId).child("turn").setValue(turn)
+        database.child(gameId).child("turn").setValue(turn).await()
     }
 
     override suspend fun createOrJoinGame(player: Player, roomId: String): String {
@@ -119,22 +115,22 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
     }
 
     override suspend fun setGameStatus(gameId: String, status: GameStatusEnum) {
-        database.child(gameId).child("status").setValue(status)
+        database.child(gameId).child("status").setValue(status).await()
     }
 
     override suspend fun setWinner(gameId: String, winnerId: String) {
-        database.child(gameId).child("winner").setValue(winnerId)
+        database.child(gameId).child("winner").setValue(winnerId).await()
     }
 
     override suspend fun setFinalScores(
         gameId: String,
         scores: Map<String, Int>
     ) {
-        database.child(gameId).child("scores").setValue(scores)
+        database.child(gameId).child("scores").setValue(scores).await()
     }
 
     override suspend fun requestRematch(gameId: String, userId: String) {
-        database.child(gameId).child("rematchRequests").child(userId).setValue(true)
+        database.child(gameId).child("rematchRequests").child(userId).setValue(true).await()
     }
 
     override suspend fun listenToRematchRequests(
@@ -157,6 +153,6 @@ class FirebaseGameRepository @Inject constructor() : IGameRepository {
     }
 
     override suspend fun clearRematchRequests(gameId: String) {
-        database.child(gameId).child("rematchRequests").removeValue()
+        database.child(gameId).child("rematchRequests").removeValue().await()
     }
 }

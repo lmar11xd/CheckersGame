@@ -1,9 +1,5 @@
 package com.lmar.checkersgame.presentation.common.ui.auth
 
-import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
-import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
-import com.lmar.checkersgame.presentation.common.components.FormTextField
-import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,8 +38,12 @@ import androidx.navigation.NavHostController
 import com.lmar.checkersgame.R
 import com.lmar.checkersgame.core.ui.theme.CheckersGameTheme
 import com.lmar.checkersgame.presentation.common.components.AppBar
+import com.lmar.checkersgame.presentation.common.components.DividerTextComponent
+import com.lmar.checkersgame.presentation.common.components.FormPasswordTextField
+import com.lmar.checkersgame.presentation.common.components.FormTextField
 import com.lmar.checkersgame.presentation.common.components.GradientButton
 import com.lmar.checkersgame.presentation.common.components.Loading
+import com.lmar.checkersgame.presentation.common.components.NormalTextComponent
 import com.lmar.checkersgame.presentation.common.components.ShadowText
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.state.AuthState
@@ -183,7 +181,7 @@ private fun LoginScreen(
                     modifier = Modifier
                         .padding(horizontal = 4.dp)
                         .clickable {
-                            println("¿Olvidaste tu Contraseña?")
+                            onEvent(AuthEvent.ToResetPassword)
                         }
                 )
             }

@@ -6,6 +6,7 @@ import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
 import com.lmar.checkersgame.presentation.common.components.SnackbarEvent
+import com.lmar.checkersgame.presentation.common.components.SnackbarType
 import com.lmar.checkersgame.presentation.common.event.ProfileEvent
 import com.lmar.checkersgame.presentation.common.event.UiEvent
 import com.lmar.checkersgame.presentation.common.state.ProfileState
@@ -34,13 +35,10 @@ class ProfileViewModel @Inject constructor(
     val eventFlow = _eventFlow.asSharedFlow()
 
     init {
-        val isAuthenticated = authRepository.isAuthenticated()
-        _profileState.value = _profileState.value.copy(isAuthenticated = isAuthenticated)
-
-        if (isAuthenticated) {
-            authRepository.getCurrentUser()?.let {
-                getUserById(it.uid)
-            }
+        val userId = authRepository.getCurrentUser()?.uid
+        _profileState.value = _profileState.value.copy(isAuthenticated = userId != null)
+        if (userId != null) {
+            getUserById(userId)
         }
     }
 
@@ -96,7 +94,7 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun logout() {
-        authRepository.signout()
+        authRepository.signOut()
         _profileState.value = _profileState.value.copy(isAuthenticated = false)
     }
 
@@ -113,8 +111,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     private fun listenForUpdates(userId: String) {
-        userRepository.listenForUpdates(userId) { user ->
-            _profileState.value = _profileState.value.copy(user = user)
+        viewModelScope.launch {
+            userRepository.listenForUpdates(userId).collect {
+                _profileState.value = _profileState.value.copy(user = it)
+            }
         }
     }
 
@@ -127,12 +127,18 @@ class ProfileViewModel @Inject constructor(
 
         if (image != null) {
             viewModelScope.launch {
-                userRepository.uploadProfileImage(updatedUser.id, image) { success, url ->
-                    if (success && url != null) {
-                        updatedUser.imageUrl = url
-                        updateUser(updatedUser)
-                    } else
-                        _profileState.value = _profileState.value.copy(isLoading = false)
+                val imageUrl = userRepository.uploadProfileImage(updatedUser.id, image)
+                if (imageUrl != null) {
+                    updatedUser.imageUrl = imageUrl
+                    updateUser(updatedUser)
+                } else {
+                    _profileState.value = _profileState.value.copy(isLoading = false)
+                    onEvent(
+                        ProfileEvent.ShowMessage(
+                            "Error al subir imagen de perfil",
+                            SnackbarType.ERROR
+                        )
+                    )
                 }
             }
         } else {
@@ -142,8 +148,18 @@ class ProfileViewModel @Inject constructor(
 
     private fun updateUser(user: User) {
         viewModelScope.launch {
-            userRepository.updateUser(user)
+            val success = userRepository.updateUser(user)
             _profileState.value = _profileState.value.copy(isLoading = false)
+            if (success) {
+                onEvent(
+                    ProfileEvent.ShowMessage(
+                        "Perfil actualizado correctamente",
+                        SnackbarType.SUCCESS
+                    )
+                )
+            } else {
+                onEvent(ProfileEvent.ShowMessage("Error al actualizar perfil", SnackbarType.ERROR))
+            }
         }
     }
 }

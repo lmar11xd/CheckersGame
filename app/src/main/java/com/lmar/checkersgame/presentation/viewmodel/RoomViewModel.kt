@@ -101,7 +101,7 @@ class RoomViewModel @Inject constructor(
                     roomRepository.setRoomStatus(room.roomId, RoomStatusEnum.COMPLETED)
                     onEvent(RoomEvent.ToGame(room.roomId))
                 } else {
-                    onEvent(RoomEvent.ShowMessage("¡Sala no encontrada, intenta con otro código!", SnackbarType.WARN))
+                    onEvent(RoomEvent.ShowMessage("¡Sala llena o cerrada!", SnackbarType.WARN))
                 }
             } else {
                 onEvent(RoomEvent.ShowMessage("¡Sala no encontrada, intenta con otro código!", SnackbarType.WARN))

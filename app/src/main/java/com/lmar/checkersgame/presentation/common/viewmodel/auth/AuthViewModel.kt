@@ -1,16 +1,16 @@
 package com.lmar.checkersgame.presentation.common.viewmodel.auth
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lmar.checkersgame.core.utils.Constants
 import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IAuthRepository
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
+import com.lmar.checkersgame.domain.util.AuthValidator
 import com.lmar.checkersgame.presentation.common.components.SnackbarEvent
 import com.lmar.checkersgame.presentation.common.components.SnackbarType
 import com.lmar.checkersgame.presentation.common.event.AuthEvent
 import com.lmar.checkersgame.presentation.common.event.UiEvent
+import com.lmar.checkersgame.presentation.common.event.UiEvent.ShowSnackbar
 import com.lmar.checkersgame.presentation.common.state.AuthState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,7 +22,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: IAuthRepository,
+    private val authRepository: IAuthRepository,
     private val userRepository: IUserRepository
 ) : ViewModel() {
 
@@ -82,7 +82,7 @@ class AuthViewModel @Inject constructor(
 
             is AuthEvent.ShowMessage -> {
                 viewModelScope.launch {
-                    _eventFlow.emit(UiEvent.ShowSnackbar(SnackbarEvent(event.message, event.type)))
+                    _eventFlow.emit(ShowSnackbar(SnackbarEvent(event.message, event.type)))
                 }
             }
 
@@ -109,33 +109,38 @@ class AuthViewModel @Inject constructor(
                     _eventFlow.emit(UiEvent.ToBack)
                 }
             }
+
+            AuthEvent.ToResetPassword -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(UiEvent.ToResetPassword)
+                }
+            }
         }
     }
 
     fun checkAuthStatus() {
-        val isAuthenticated = repository.isAuthenticated()
-        _authState.value = _authState.value.copy(
-            isAuthenticated = isAuthenticated
-        )
-
-        if (isAuthenticated) {
+        val userId = authRepository.getCurrentUser()?.uid
+        if (userId != null) {
             viewModelScope.launch {
-                val authUser = repository.getCurrentUser()
-
-                val user = userRepository.getUserById(authUser?.uid ?: "") ?: User()
+                val user = userRepository.getUserById(userId) ?: User()
                 _authState.value = _authState.value.copy(
+                    isAuthenticated = true,
                     user = user
                 )
             }
         } else {
             _authState.value = _authState.value.copy(
+                isAuthenticated = false,
                 user = User()
             )
         }
     }
 
     fun login() {
-        if (_authState.value.email.isBlank() || _authState.value.password.isBlank()) {
+        val email = _authState.value.email
+        val password = _authState.value.password
+
+        if (email.isBlank() || password.isBlank()) {
             onEvent(
                 AuthEvent.ShowMessage(
                     "¡Correo y/o contraseña no pueden ser vacías!",
@@ -145,50 +150,72 @@ class AuthViewModel @Inject constructor(
             return
         }
 
+        val validationResult = AuthValidator.validateCredentials(email, password)
+        validationResult.onFailure {
+            onEvent(
+                AuthEvent.ShowMessage(
+                    it.message ?: "Error al validar datos del usuario",
+                    SnackbarType.WARN
+                )
+            )
+            return
+        }
+
         _authState.value = _authState.value.copy(isLoading = true)
-        repository.login(_authState.value.email, _authState.value.password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    _authState.value = _authState.value.copy(
-                        isLoading = false,
-                        isAuthenticated = true
+
+        viewModelScope.launch {
+            val result = authRepository.login(email, password)
+            result.onSuccess {
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    isAuthenticated = true
+                )
+                onEvent(
+                    AuthEvent.ShowMessage(
+                        "Usuario logueado correctamente",
+                        SnackbarType.SUCCESS
                     )
-                    onEvent(AuthEvent.ToHome)
-                }
-            }
-            .addOnFailureListener { error ->
+                )
+                onEvent(AuthEvent.ToHome)
+            }.onFailure { error ->
                 _authState.value = _authState.value.copy(isLoading = false)
-                Log.e(TAG, "Error al logearse: ${error.message}")
-                if (error.message == Constants.ERROR_MESSAGE_AUTH) {
-                    onEvent(
-                        AuthEvent.ShowMessage(
-                            "Correo y/o contraseña incorrectos",
-                            SnackbarType.WARN
-                        )
+                onEvent(
+                    AuthEvent.ShowMessage(
+                        error.message ?: "Error al logearse",
+                        SnackbarType.ERROR
                     )
-                } else {
-                    onEvent(AuthEvent.ShowMessage("Error al logearse", SnackbarType.ERROR))
-                }
+                )
             }
+        }
     }
 
     fun signup() {
-        if (_authState.value.names.isBlank()) {
+        val names = _authState.value.names
+        val email = _authState.value.email
+        val password = _authState.value.password
+        val confirmPassword = _authState.value.confirmPassword
+
+        if (names.isBlank()) {
             onEvent(AuthEvent.ShowMessage("¡Nombres no pueden ser vacíos!", SnackbarType.WARN))
             return
         }
 
-        if (_authState.value.email.isBlank()) {
+        if (email.isBlank()) {
             onEvent(AuthEvent.ShowMessage("¡Correo no puede ser vacío!", SnackbarType.WARN))
             return
         }
 
-        if (_authState.value.password.isBlank()) {
+        if (!AuthValidator.isValidEmail(email)) {
+            onEvent(AuthEvent.ShowMessage("¡Correo electrónico inválido!", SnackbarType.WARN))
+            return
+        }
+
+        if (password.isBlank()) {
             onEvent(AuthEvent.ShowMessage("¡Contraseña no puede ser vacía!", SnackbarType.WARN))
             return
         }
 
-        if (_authState.value.password.length < 6) {
+        if (password.length < 6) {
             onEvent(
                 AuthEvent.ShowMessage(
                     "¡Contraseña debe tener al menos 6 caracteres!",
@@ -198,8 +225,7 @@ class AuthViewModel @Inject constructor(
             return
         }
 
-        if (_authState.value.confirmPassword.isBlank() ||
-            _authState.value.password != _authState.value.confirmPassword
+        if (confirmPassword.isBlank() || password != confirmPassword
         ) {
             onEvent(AuthEvent.ShowMessage("¡Las contraseñas no coinciden!", SnackbarType.WARN))
             return
@@ -207,53 +233,48 @@ class AuthViewModel @Inject constructor(
 
         _authState.value = _authState.value.copy(isLoading = true)
 
-        repository.signup(_authState.value.email, _authState.value.password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    //Registrar Usuario
-                    val newUser = User().apply {
-                        id = task.result.user?.uid ?: ""
-                        this.names = names
-                        this.email = email
-                    }
+        viewModelScope.launch {
+            val result = authRepository.signup(_authState.value.email, _authState.value.password)
+            result.onSuccess {
+                val uid = result.getOrNull()
 
-                    viewModelScope.launch {
-                        userRepository.createUser(newUser) { success ->
-                            _authState.value = _authState.value.copy(
-                                isLoading = false,
-                                isAuthenticated = success
-                            )
-
-                            if (success) {
-                                Log.d(TAG, "Usuario registrado con éxito: ${newUser.id}")
-                                onEvent(AuthEvent.ToHome)
-                            } else {
-                                Log.e(TAG, "Error al registrar usuario")
-                            }
-                        }
-                    }
+                // Navegar o registrar en la base de datos
+                val newUser = User().apply {
+                    id = uid.toString()
+                    this.names = names
+                    this.email = email
                 }
-            }
-            .addOnFailureListener { error ->
-                _authState.value = _authState.value.copy(isLoading = false)
-                Log.e(TAG, "Error al registrar usuario: ${error.message}")
-                if (error.message == Constants.ERROR_MESSAGE_ACCOUNT_EXISTS) {
+
+                val success = userRepository.createUser(newUser)
+                _authState.value = _authState.value.copy(
+                    isLoading = false,
+                    isAuthenticated = success
+                )
+                if (success) {
                     onEvent(
                         AuthEvent.ShowMessage(
-                            "El correo ya ha sido registrado",
-                            SnackbarType.WARN
+                            "Usuario registrado correctamente",
+                            SnackbarType.SUCCESS
                         )
                     )
+                    onEvent(AuthEvent.ToHome)
                 } else {
-                    onEvent(AuthEvent.ShowMessage("Error al registrar usuario", SnackbarType.ERROR))
+                    onEvent(
+                        AuthEvent.ShowMessage(
+                            "Error al registrar datos del usuario",
+                            SnackbarType.ERROR
+                        )
+                    )
                 }
+            }.onFailure { error ->
+                _authState.value = _authState.value.copy(isLoading = false)
+                onEvent(
+                    AuthEvent.ShowMessage(
+                        error.message ?: "Error al registrar usuario",
+                        SnackbarType.ERROR
+                    )
+                )
             }
-    }
-
-    fun signout() {
-        repository.signout()
-        _authState.value = _authState.value.copy(
-            isAuthenticated = false
-        )
+        }
     }
 }

@@ -10,6 +10,7 @@ sealed class UiEvent {
     object ToLogin : UiEvent()
     object ToSignUp : UiEvent()
     object ToProfile : UiEvent()
+    object ToResetPassword : UiEvent()
     data class ToSingleGame(val level: Difficulty) : UiEvent()
     data class ToGame(val roomId: String) : UiEvent()
     object ToRanking : UiEvent()

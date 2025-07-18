@@ -17,6 +17,7 @@ sealed class AuthEvent {
     object ToHome : AuthEvent()
     object ToLogin : AuthEvent()
     object ToSignUp : AuthEvent()
+    object ToResetPassword : AuthEvent()
     object ToBack : AuthEvent()
 
     data class ShowMessage(val message: String, val type: SnackbarType) : AuthEvent()

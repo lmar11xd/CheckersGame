@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.dp
 object Constants {
     const val DATABASE_REFERENCE = "games/checkers"
 
-    const val USERS_REFERENCE = "users"
+    const val USERS_DATABASE = "users"
 
     const val GAMES_REFERENCE = "games"
 

@@ -5,40 +5,40 @@ import android.util.Log
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
+import com.lmar.checkersgame.core.utils.Constants
 import com.lmar.checkersgame.domain.model.User
 import com.lmar.checkersgame.domain.repository.common.IUserRepository
-import com.lmar.checkersgame.core.utils.Constants
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
-class FirebaseUserRepository @Inject constructor() : IUserRepository {
+class FirebaseUserRepository @Inject constructor(
+    private val database: DatabaseReference,
+    private val storage: FirebaseStorage
+) : IUserRepository {
 
     companion object {
         private const val TAG = "FirebaseUserRepository"
     }
 
-    private val database: DatabaseReference =
-        FirebaseDatabase.getInstance().getReference(Constants.USERS_REFERENCE)
-    private val storage = FirebaseStorage.getInstance()
-
-    override suspend fun createUser(user: User, onResult: (Boolean) -> Unit) {
-        database.child(user.id).setValue(user)
-            .addOnSuccessListener {
-                Log.d(TAG, "Usuario registrado con éxito: ${user.id}")
-                onResult(true)
-            }
-            .addOnFailureListener {
-                Log.e(TAG, "Error al actualizar usuario", it)
-                onResult(false)
-            }
+    override suspend fun createUser(user: User): Boolean {
+        return try {
+            database.child(user.id).setValue(user).await()
+            Log.d(TAG, "Usuario creado con éxito: ${user.id}")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al crear usuario ${user.id}", e)
+            false
+        }
     }
 
     override suspend fun getUserById(userId: String): User? {
+        if (userId.isBlank()) return null
+
         return try {
             val snapshot = database.child(userId).get().await()
             snapshot.getValue(User::class.java)
@@ -48,74 +48,70 @@ class FirebaseUserRepository @Inject constructor() : IUserRepository {
         }
     }
 
-    override fun listenForUpdates(userId: String, onUpdate: (User) -> Unit) {
-        database.child(userId).addValueEventListener(object : ValueEventListener {
+    override fun listenForUpdates(userId: String): Flow<User> = callbackFlow {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                snapshot.getValue(User::class.java)?.let { onUpdate(it) }
+                snapshot.getValue(User::class.java)?.let { trySend(it).isSuccess }
             }
 
-            override fun onCancelled(error: DatabaseError) {}
-        })
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        val ref = database.child(userId)
+        ref.addValueEventListener(listener)
+
+        awaitClose { ref.removeEventListener(listener) }
     }
 
-    override suspend fun uploadProfileImage(
-        userId: String,
-        uri: Uri,
-        onResult: (Boolean, String?) -> Unit
-    ) {
-        val ref = storage.getReference("${Constants.STORAGE_REFERENCE}/$userId.jpg")
-        ref.putFile(uri)
-            .addOnSuccessListener {
-                ref.downloadUrl.addOnSuccessListener { downloadUri ->
-                    onResult(true, downloadUri.toString())
-                }.addOnFailureListener {
-                    onResult(false, null)
-                }
-            }
-            .addOnFailureListener { error ->
-                Log.e(TAG, "Error al guardar imagen de perfil", error)
-                onResult(false, null)
-            }
-    }
-
-    override suspend fun updateUser(user: User ) {
-        try {
-            database.child(user.id).setValue(user)
-            Log.d(TAG, "Usuario actualizado con éxito: ${user.id}")
+    override suspend fun uploadProfileImage(userId: String, uri: Uri): String? {
+        return try {
+            val ref = storage.getReference("${Constants.STORAGE_REFERENCE}/$userId.jpg")
+            ref.putFile(uri).await()
+            val downloadUrl = ref.downloadUrl.await()
+            downloadUrl.toString()
         } catch (e: Exception) {
-            Log.e(TAG, "Error al actualizar usuario", e)
+            Log.e(TAG, "Error al subir imagen de perfil de $userId", e)
+            null
         }
     }
 
-    override suspend fun updateUserScore(userId: String, newScore: Int) {
-        val userRef = database.child(userId)
-
-        val currentScore = suspendCoroutine<Int> { cont ->
-            userRef.child("score").get()
-                .addOnSuccessListener { snapshot ->
-                    val score = snapshot.getValue(Int::class.java) ?: 0
-                    cont.resume(score)
-                }
-                .addOnFailureListener {
-                    cont.resume(0) // Asume 0 si falla
-                }
+    override suspend fun updateUser(user: User ): Boolean {
+        return try {
+            database.child(user.id).setValue(user).await()
+            Log.d(TAG, "Usuario actualizado: ${user.id}")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al actualizar usuario ${user.id}", e)
+            false
         }
+    }
 
-        val updatedScore = currentScore + newScore
-
-        userRef.child("score").setValue(updatedScore)
+    override suspend fun updateUserScore(userId: String, newScore: Int): Boolean {
+        return try {
+            val userRef = database.child(userId)
+            val currentScoreSnapshot = userRef.child("score").get().await()
+            val currentScore = currentScoreSnapshot.getValue(Int::class.java) ?: 0
+            val updatedScore = currentScore + newScore
+            userRef.child("score").setValue(updatedScore).await()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al actualizar puntaje de $userId", e)
+            false
+        }
     }
 
     override suspend fun getTopPlayers(limit: Int): List<User> {
-        val query = database.orderByChild("score")
-            .limitToLast(limit) // ← porque ordena ascendente, usamos limitToLast
-        val snapshot = query.get().await()
-
-        if (snapshot == null) return emptyList()
-
-        val users = snapshot.children.mapNotNull { it.getValue(User::class.java) }
-            .sortedByDescending { it.score }
-
-        return users
+        return try {
+            val query = database.orderByChild("score").limitToLast(limit)
+            val snapshot = query.get().await()
+            snapshot.children
+                .mapNotNull { it.getValue(User::class.java) }
+                .sortedByDescending { it.score }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al obtener jugadores top", e)
+            emptyList()
+        }
     }
 }

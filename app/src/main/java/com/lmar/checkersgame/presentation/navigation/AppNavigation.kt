@@ -23,6 +23,7 @@ import com.lmar.checkersgame.presentation.common.components.SnackbarType
 import com.lmar.checkersgame.presentation.common.event.UiEvent
 import com.lmar.checkersgame.presentation.common.ui.auth.LoginScreenContainer
 import com.lmar.checkersgame.presentation.common.ui.auth.ProfileScreenContainer
+import com.lmar.checkersgame.presentation.common.ui.auth.ResetPasswordScreenContainer
 import com.lmar.checkersgame.presentation.common.ui.auth.SignUpScreenContainer
 import com.lmar.checkersgame.presentation.ui.screen.GameScreenContainer
 import com.lmar.checkersgame.presentation.ui.screen.HomeScreenContainer
@@ -74,6 +75,10 @@ fun AppNavigation() {
 
             composable(route = AppRoutes.ProfileScreen.route) {
                 ProfileScreenContainer(navController)
+            }
+
+            composable(route = AppRoutes.ResetPasswordScreen.route) {
+                ResetPasswordScreenContainer(navController)
             }
 
             composable(AppRoutes.HomeScreen.route) {
@@ -136,6 +141,7 @@ fun NavController.handleUiEvents(
                 UiEvent.ToSignUp -> navigate(AppRoutes.SignUpScreen.route)
                 UiEvent.ToLogin -> navigate(AppRoutes.LoginScreen.route)
                 UiEvent.ToProfile -> navigate(AppRoutes.ProfileScreen.route)
+                UiEvent.ToResetPassword -> navigate(AppRoutes.ResetPasswordScreen.route)
                 is UiEvent.ToSingleGame -> navigate(AppRoutes.SingleGameScreen.withParam("level", event.level.name))
                 is UiEvent.ToGame -> navigate(AppRoutes.GameScreen.withParam("roomId", event.roomId))
                 UiEvent.ToRanking -> navigate(AppRoutes.RankingScreen.route)

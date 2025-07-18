@@ -4,6 +4,7 @@ sealed class AppRoutes(val route: String) {
     data object LoginScreen: AppRoutes("login_screen")
     data object SignUpScreen: AppRoutes("signup_screen")
     data object ProfileScreen: AppRoutes("profile_screen")
+    data object ResetPasswordScreen: AppRoutes("resetpassword_screen")
     data object HomeScreen: AppRoutes("home_screen")
     data object SingleGameScreen: AppRoutes("singlegame_screen")
     data object GameScreen: AppRoutes("game_screen")
