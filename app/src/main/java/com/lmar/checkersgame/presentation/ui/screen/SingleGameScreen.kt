@@ -38,7 +38,7 @@ import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.components.game.GameBoard
 import com.lmar.checkersgame.presentation.ui.components.game.GameHeaderInfo
-import com.lmar.checkersgame.presentation.ui.components.game.GameResultDialogs
+import com.lmar.checkersgame.presentation.ui.components.game.SingleGameResultDialogs
 import com.lmar.checkersgame.presentation.ui.event.GameEvent
 import com.lmar.checkersgame.presentation.ui.state.GameState
 import com.lmar.checkersgame.presentation.viewmodel.SingleGameViewModel
@@ -128,7 +128,7 @@ private fun SingleGameScreen(
                     )
                 }
 
-                GameResultDialogs(
+                SingleGameResultDialogs(
                     gameState = gameState,
                     userId = userId,
                     showExitDialog = showExitDialog,
@@ -154,7 +154,7 @@ private fun SingleGameScreenPreview() {
         )
 
         SingleGameScreen(
-            GameState(game, selectedCell = Position(0, 0)),
+            GameState(game, selectedCell = Position(7, 0)),
             "01"
         )
     }

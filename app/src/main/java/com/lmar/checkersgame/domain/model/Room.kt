@@ -4,8 +4,8 @@ import com.lmar.checkersgame.domain.enum.RoomStatusEnum
 import com.lmar.checkersgame.core.utils.generateUniqueCode
 
 data class Room(
-    var roomId: String,
-    var roomCode: String,
+    var roomId: String = "",
+    var roomCode: String = "",
     var roomStatus: RoomStatusEnum = RoomStatusEnum.OPENED,
     var createdAt: Long? = null,
     var updatedAt: Long? = null

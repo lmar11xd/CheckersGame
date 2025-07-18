@@ -5,16 +5,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +43,7 @@ import com.lmar.checkersgame.presentation.common.components.AppBar
 import com.lmar.checkersgame.presentation.navigation.handleUiEvents
 import com.lmar.checkersgame.presentation.ui.components.game.GameBoard
 import com.lmar.checkersgame.presentation.ui.components.game.GameHeaderInfo
+import com.lmar.checkersgame.presentation.ui.components.game.GameResultDialog
 import com.lmar.checkersgame.presentation.ui.event.GameEvent
 import com.lmar.checkersgame.presentation.ui.state.GameState
 import com.lmar.checkersgame.presentation.viewmodel.GameViewModel
@@ -58,7 +54,6 @@ fun GameScreenContainer(
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val gameState by viewModel.gameState.collectAsState()
-    val roomState by viewModel.roomState.collectAsState()
     val userId = viewModel.userId
 
     val coroutineScope = rememberCoroutineScope()
@@ -72,7 +67,6 @@ fun GameScreenContainer(
 
     GameScreen(
         gameState = gameState,
-        roomState = roomState,
         onEvent = { viewModel.onEvent(it) },
         userId = userId
     )
@@ -82,7 +76,6 @@ fun GameScreenContainer(
 @Composable
 private fun GameScreen(
     gameState: GameState = GameState(),
-    roomState: Room?,
     onEvent: (GameEvent) -> Unit = {},
     userId: String
 ) {
@@ -143,126 +136,20 @@ private fun GameScreen(
                 }
 
                 Text(
-                    text = roomState?.roomCode ?: "",
+                    text = gameState.room.roomCode,
                     fontSize = 12.sp,
                     color = Color.LightGray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.End)
                 )
 
-                if (gameState.game.status == GameStatusEnum.WAITING) {
-                    AlertDialog(
-                        onDismissRequest = {}, // Evita que se cierre tocando fuera
-                        title = {
-                            Text("Esperando al oponente")
-                        },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    "La partida se iniciará cuando otro jugador se una. Código de sala:",
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(roomState?.roomCode.toString(), fontSize = 24.sp)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                CircularProgressIndicator()
-                                Text("Esperando...")
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { onEvent(GameEvent.LeaveRoom) }) {
-                                Text("Salir")
-                            }
-                        }
-                    )
-                }
-
-                if (gameState.game.status == GameStatusEnum.FINISHED) {
-                    AlertDialog(
-                        onDismissRequest = {},
-                        title = {
-                            Text(
-                                text = when (gameState.game.winner) {
-                                    null -> "Empate"
-                                    userId -> "¡Felicidades, ganaste!"
-                                    else -> "Perdiste"
-                                },
-                                fontSize = 20.sp
-                            )
-                        },
-                        text = {
-                            if (gameState.rematchRequested) {
-                                Text("Revancha solicitada, esperando a que el oponente acepte.")
-                            } else {
-                                Text("¿Qué deseas hacer?")
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = { onEvent(GameEvent.Rematch) },
-                                enabled = !gameState.rematchRequested
-                            ) {
-                                Text("Revancha")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { onEvent(GameEvent.AbortGame) }) {
-                                Text("Salir")
-                            }
-                        }
-                    )
-                }
-
-                if (gameState.game.status == GameStatusEnum.ABORTED && gameState.game.winner == userId) {
-                    AlertDialog(
-                        onDismissRequest = {},
-                        title = {
-                            Text(text = "¡Felicidades, ganaste!")
-                        },
-                        text = {
-                            Text("Tu oponente abandonó la partida.")
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { onEvent(GameEvent.ToBack) }) {
-                                Text("Salir")
-                            }
-                        }
-                    )
-                }
-
-                if (showExitDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showExitDialog = false },
-                        title = {
-                            Text("¿Deseas salir de la partida?")
-                        },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("La partida se dará por terminada.")
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                showExitDialog = false
-                                onEvent(GameEvent.AbortGame)
-                            }) {
-                                Text("Salir")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showExitDialog = false }) {
-                                Text("Cancelar")
-                            }
-                        }
-                    )
-                }
+                GameResultDialog(
+                    gameState = gameState,
+                    userId = userId,
+                    showExitDialog = showExitDialog,
+                    onDismissExitDialog = { showExitDialog = false },
+                    onEvent = onEvent
+                )
             }
         }
     }
@@ -273,20 +160,18 @@ private fun GameScreen(
 private fun GameScreenPreview() {
     CheckersGameTheme {
         val board = generateInitialBoard("01", "02")
-        val gameState = Game(
+        val game = Game(
             "12345",
             Player("01", "Player 1"),
             Player("02", "Player 2"),
             board, "01", "01",
             GameStatusEnum.PLAYING
         )
-        val roomState = Room("0001", "908060", RoomStatusEnum.COMPLETED)
+        val room = Room("0001", "908060", RoomStatusEnum.COMPLETED)
 
         GameScreen(
-            gameState = GameState(gameState),
-            roomState = roomState,
-            {},
-            "01"
+            gameState = GameState(game = game, room = room),
+            userId = "01"
         )
     }
 }

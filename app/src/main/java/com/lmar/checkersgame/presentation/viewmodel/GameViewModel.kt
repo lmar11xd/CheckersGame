@@ -46,9 +46,6 @@ class GameViewModel @Inject constructor(
     private val _gameState = MutableStateFlow<GameState>(GameState())
     val gameState: StateFlow<GameState> = _gameState
 
-    private val _roomState = MutableStateFlow<Room?>(null)
-    val roomState: StateFlow<Room?> = _roomState
-
     private val _eventFlow = MutableSharedFlow<UiEvent>()
     val eventFlow = _eventFlow.asSharedFlow()
 
@@ -102,7 +99,7 @@ class GameViewModel @Inject constructor(
             val player = Player(userId, user.getFirstName())
 
             val room = roomRepository.getRoomById(roomId) ?: return@launch
-            _roomState.value = room
+            _gameState.value = _gameState.value.copy(room = room)
 
             gameId = repository.createOrJoinGame(player, roomId)
 
