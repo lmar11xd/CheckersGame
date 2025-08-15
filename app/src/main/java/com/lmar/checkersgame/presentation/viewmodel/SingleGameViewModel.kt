@@ -34,7 +34,7 @@ class SingleGameViewModel @Inject constructor(
     private val resetGameUseCase: ResetSingleGameUseCase
 ) : ViewModel() {
 
-    private val _gameState = MutableStateFlow<GameState>(GameState())
+    private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState
 
     private val _eventFlow = MutableSharedFlow<UiEvent>()
@@ -50,10 +50,10 @@ class SingleGameViewModel @Inject constructor(
         savedStateHandle.get<String>("level")?.let { level ->
             gameLevel = Difficulty.valueOf(level)
             viewModelScope.launch {
-                initializeGame(level) { game, id, ai ->
+                initializeGame(level) { game, id, ai, isAuth->
                     userId = id
                     aiPlayer = ai
-                    _gameState.value = _gameState.value.copy(game = game)
+                    _gameState.value = _gameState.value.copy(game = game, isAuthenticated = isAuth)
                     startGameTimer()
                 }
             }
@@ -127,6 +127,7 @@ class SingleGameViewModel @Inject constructor(
                 to = to,
                 game = game,
                 userId = userId,
+                isAuthenticated = _gameState.value.isAuthenticated,
                 updateGame = { _gameState.value = _gameState.value.copy(game = it) },
                 updateSelected = { _gameState.value = _gameState.value.copy(selectedCell = it) },
                 declareWinner = { winner ->

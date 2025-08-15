@@ -43,7 +43,7 @@ class GameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _gameState = MutableStateFlow<GameState>(GameState())
+    private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState
 
     private val _eventFlow = MutableSharedFlow<UiEvent>()

@@ -28,7 +28,7 @@ class ProfileViewModel @Inject constructor(
         private const val TAG = "ProfileViewModel"
     }
 
-    private val _profileState = MutableStateFlow<ProfileState>(ProfileState())
+    private val _profileState = MutableStateFlow(ProfileState())
     val profileState: StateFlow<ProfileState> = _profileState
 
     private val _eventFlow = MutableSharedFlow<UiEvent>()

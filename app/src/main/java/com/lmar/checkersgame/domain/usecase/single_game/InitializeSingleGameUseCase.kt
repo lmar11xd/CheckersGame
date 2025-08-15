@@ -13,11 +13,12 @@ class InitializeSingleGameUseCase @Inject constructor(
 ) {
     operator fun invoke(
         difficulty: String,
-        onResult: (Game, String, AIPlayer) -> Unit
+        onResult: (Game, String, AIPlayer, Boolean) -> Unit
     ) {
         val level = com.lmar.checkersgame.domain.ai.Difficulty.valueOf(difficulty)
         val aiPlayer = AIPlayer(level)
         val userId = authRepository.getCurrentUser()?.uid.orEmpty()
+        val isAuthenticated = authRepository.isAuthenticated()
         val player1 = Player(userId, "Tú")
         val player2 = Player("AI", "IA")
         val board = generateInitialBoard(player1.id, player2.id)
@@ -29,6 +30,6 @@ class InitializeSingleGameUseCase @Inject constructor(
             status = GameStatusEnum.PLAYING,
             level = level
         )
-        onResult(game, userId, aiPlayer)
+        onResult(game, userId, aiPlayer, isAuthenticated)
     }
 }

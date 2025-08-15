@@ -11,5 +11,6 @@ data class GameState (
     val gameLevel: Difficulty = Difficulty.EASY,
     val selectedCell: Position? = null,
     val scores: Map<String, Int> = emptyMap(),
-    val rematchRequested: Boolean = false
+    val rematchRequested: Boolean = false,
+    val isAuthenticated: Boolean = false
 )

@@ -12,7 +12,8 @@ class CheckWinnerUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         board: List<MutableList<Piece>>,
-        game: Game
+        game: Game,
+        isAuthenticated: Boolean
     ): String? {
         val (p1, p2) = game.requirePlayerIds()
 
@@ -23,11 +24,15 @@ class CheckWinnerUseCase @Inject constructor(
 
         return when {
             !aiHasPieces || !aiCanMove -> {
-                finishGameUseCase(game, p1)
+                if (isAuthenticated) {
+                    finishGameUseCase(game, p1)
+                }
                 p1
             }
             !userHasPieces || !userCanMove -> {
-                finishGameUseCase(game, p2)
+                if (isAuthenticated) {
+                    finishGameUseCase(game, p2)
+                }
                 p2
             }
             else -> null

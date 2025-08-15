@@ -20,6 +20,7 @@ class MovePieceUseCase @Inject constructor(
         to: Position,
         game: Game,
         userId: String,
+        isAuthenticated: Boolean,
         updateGame: (Game) -> Unit,
         updateSelected: (Position?) -> Unit,
         declareWinner: (String?) -> Unit
@@ -29,7 +30,7 @@ class MovePieceUseCase @Inject constructor(
         if (piece.playerId != userId ||
             !isValidMove(game.board, from, to, userId, p1, p2)) return
 
-        val board = game.board.map { it.map { it.copy() }.toMutableList() }.toMutableList()
+        val board = game.board.map { row -> row.map { it.copy() }.toMutableList() }.toMutableList()
         val rowDiff = to.first - from.first
         val colDiff = to.second - from.second
         val jumped = kotlin.math.abs(rowDiff) == 2 && kotlin.math.abs(colDiff) == 2
@@ -54,7 +55,7 @@ class MovePieceUseCase @Inject constructor(
             updateSelected(to)
         } else {
             updateSelected(null)
-            val winner = checkWinnerUseCase(board, game)
+            val winner = checkWinnerUseCase(board, game, isAuthenticated)
             declareWinner(winner)
             if (winner == null) {
                 makeAIMoveUseCase(game.copy(board = board), updateGame)
